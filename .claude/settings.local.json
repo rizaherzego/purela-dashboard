@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(npm --version)",
-      "Bash(npx nuxi@latest init . --no-install --package-manager npm)"
-    ]
-  }
-}
