@@ -1,7 +1,7 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
-  const sb = getServiceSupabase()
+  const sb = await serverSupabaseServiceRole(event)
   const channelId = getQuery(event).channel as string | undefined
 
   let q = sb.from('v_audit_sku_margin')

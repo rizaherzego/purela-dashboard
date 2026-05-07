@@ -1,8 +1,8 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
 // Returns channels with their available file types — drives the upload picker.
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
 
   const [{ data: channels, error: chErr }, { data: fileTypes, error: ftErr }] = await Promise.all([
     sb.from('channels').select('channel_id, channel_name, is_marketplace').order('channel_name'),

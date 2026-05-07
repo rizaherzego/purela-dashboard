@@ -1,7 +1,7 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
   const [{ data: bundles, error: bErr }, { data: components, error: cErr }] = await Promise.all([
     sb.from('bundles').select('bundle_sku, bundle_name, notes').order('bundle_sku'),
     sb.from('bundle_components').select('bundle_sku, component_sku, quantity'),

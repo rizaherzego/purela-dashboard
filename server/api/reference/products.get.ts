@@ -1,7 +1,7 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
   const { data: products, error: pErr } = await sb
     .from('products')
     .select('sku, product_name, category, unit_size, weight_grams, is_bundle, is_active')

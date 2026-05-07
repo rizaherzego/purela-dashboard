@@ -1,7 +1,7 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
   const { data, error } = await sb
     .from('import_batches')
     .select(`

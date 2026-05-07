@@ -1,9 +1,9 @@
+import { serverSupabaseServiceRole } from '#supabase/server'
 import { sha256Hex } from '~~/server/utils/file-hash'
 import { parseCsv } from '~~/server/utils/parse-csv'
 import { parseXlsx } from '~~/server/utils/parse-xlsx'
 import { mapRowsForFileType, detectPeriod } from '~~/server/utils/row-mappers'
 import { stashStaged } from '~~/server/utils/stage-cache'
-import { getServiceSupabase } from '~~/server/utils/supabase'
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50MB
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const bytes = Buffer.from(filePart.data)
   const hash = sha256Hex(bytes)
 
-  const sb = getServiceSupabase()
+  const sb = await serverSupabaseServiceRole(event)
 
   // 1. Duplicate check
   const { data: existing } = await sb

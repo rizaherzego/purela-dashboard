@@ -1,6 +1,6 @@
+import { serverSupabaseServiceRole } from '#supabase/server'
 import { popStaged } from '~~/server/utils/stage-cache'
 import { detectPeriod } from '~~/server/utils/row-mappers'
-import { getServiceSupabase } from '~~/server/utils/supabase'
 
 const BATCH_INSERT_SIZE = 500
 
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const sb = getServiceSupabase()
+  const sb = await serverSupabaseServiceRole(event)
 
   // 1. Look up file-type metadata to know which raw_* table to write to
   const { data: fileType, error: ftErr } = await sb

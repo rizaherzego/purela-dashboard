@@ -1,7 +1,7 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
 
   const [unmapped, missingCogs, unsettled, undefinedBundles] = await Promise.all([
     sb.from('v_dq_unmapped_skus').select('*').limit(50),

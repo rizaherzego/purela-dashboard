@@ -1,4 +1,4 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
 export default defineEventHandler(async (event) => {
   const id = Number(getRouterParam(event, 'id'))
@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid batch id.' })
   }
 
-  const sb = getServiceSupabase()
+  const sb = await serverSupabaseServiceRole(event)
 
   // Look up the batch first so we can clean up storage and re-run ETL after delete
   const { data: batch, error: lookupErr } = await sb

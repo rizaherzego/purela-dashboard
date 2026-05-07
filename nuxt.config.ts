@@ -12,20 +12,17 @@ export default defineNuxtConfig({
   // a postcss "import.meta" parse error on Node 22.0.0 + Vite 6.
   css: ['~/assets/css/tailwind.css'],
 
-  // The Supabase module is kept for type generation and the public anon
-  // client (read-only for views, governed by RLS). All writes and
-  // sensitive reads go through Nuxt server routes using the service-role
-  // key — see server/utils/supabase.ts.
+  // The @nuxtjs/supabase module reads SUPABASE_URL, SUPABASE_KEY (anon),
+  // and SUPABASE_SERVICE_KEY directly from env. Server routes use
+  // serverSupabaseServiceRole(event) from #supabase/server for privileged
+  // operations; the anon client is available client-side via useSupabaseClient.
   supabase: {
     redirect: false,
   },
 
   runtimeConfig: {
-    // Server-only secrets (overridden by env vars at runtime)
-    dashboardPassword: '',          // NUXT_DASHBOARD_PASSWORD
-    supabaseServiceKey: '',         // NUXT_SUPABASE_SERVICE_KEY
-    // nuxt-auth-utils reads NUXT_SESSION_PASSWORD automatically; we don't
-    // need to redeclare it here.
+    dashboardPassword: '',  // NUXT_DASHBOARD_PASSWORD
+    // nuxt-auth-utils reads NUXT_SESSION_PASSWORD automatically.
     public: {
       appName: 'Purela Dashboard',
     },

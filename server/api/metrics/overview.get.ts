@@ -1,9 +1,9 @@
-import { getServiceSupabase } from '~~/server/utils/supabase'
+import { serverSupabaseServiceRole } from '#supabase/server'
 
 // Profitability Overview metrics — last 30 days vs prior 30 days.
 // Reads from fact_orders directly so the math is consistent with the audit views.
-export default defineEventHandler(async () => {
-  const sb = getServiceSupabase()
+export default defineEventHandler(async (event) => {
+  const sb = await serverSupabaseServiceRole(event)
 
   const today = new Date()
   const day = (offset: number) => {
