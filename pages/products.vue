@@ -18,50 +18,50 @@ const { data, pending, error } = await useFetch<{ products: Product[] }>('/api/r
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <p class="text-sm text-gray-500">
+      <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
         Master product list and current COGS. Editing comes next turn — for now, manage rows via SQL or the bulk CSV importer.
       </p>
-      <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg text-gray-400 cursor-not-allowed" disabled>
-        + Add product (next turn)
+      <button class="px-3.5 py-2 text-sm border border-cream-200 rounded-md text-cream-400 cursor-not-allowed" disabled>
+        + Add product
       </button>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div v-if="pending" class="p-8 text-center text-sm text-gray-400">Loading…</div>
-      <div v-else-if="error" class="p-8 text-center text-sm text-red-600">{{ error.message }}</div>
-      <div v-else-if="!data?.products?.length" class="p-8 text-center text-sm text-gray-400">
-        No products yet. Insert rows into <code class="font-mono bg-gray-100 px-1 rounded">products</code> via SQL.
+    <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
+      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
+      <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
+      <div v-else-if="!data?.products?.length" class="p-12 text-center text-sm text-cream-500">
+        No products yet. Insert rows into <code class="font-mono bg-cream-100 px-1.5 py-0.5 rounded">products</code> via SQL.
       </div>
       <table v-else class="w-full text-sm">
-        <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+        <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
-            <th class="px-4 py-2.5 text-left">SKU</th>
-            <th class="px-4 py-2.5 text-left">Name</th>
-            <th class="px-4 py-2.5 text-left">Category</th>
-            <th class="px-4 py-2.5 text-left">Size</th>
-            <th class="px-4 py-2.5 text-right">COGS</th>
-            <th class="px-4 py-2.5 text-right">Packaging</th>
-            <th class="px-4 py-2.5 text-center">Bundle</th>
-            <th class="px-4 py-2.5 text-center">Active</th>
+            <th class="px-5 py-3 text-left font-medium">SKU</th>
+            <th class="px-5 py-3 text-left font-medium">Name</th>
+            <th class="px-5 py-3 text-left font-medium">Category</th>
+            <th class="px-5 py-3 text-left font-medium">Size</th>
+            <th class="px-5 py-3 text-right font-medium">COGS</th>
+            <th class="px-5 py-3 text-right font-medium">Packaging</th>
+            <th class="px-5 py-3 text-center font-medium">Bundle</th>
+            <th class="px-5 py-3 text-center font-medium">Active</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="p in data.products" :key="p.sku" class="hover:bg-gray-50">
-            <td class="px-4 py-2.5 font-mono text-xs">{{ p.sku }}</td>
-            <td class="px-4 py-2.5">{{ p.product_name }}</td>
-            <td class="px-4 py-2.5 text-gray-500">{{ p.category || '—' }}</td>
-            <td class="px-4 py-2.5 text-gray-500">{{ p.unit_size || '—' }}</td>
-            <td class="px-4 py-2.5 text-right">{{ formatIDR(p.current_cogs) }}</td>
-            <td class="px-4 py-2.5 text-right text-gray-500">{{ formatIDR(p.current_packaging) }}</td>
-            <td class="px-4 py-2.5 text-center">
-              <span v-if="p.is_bundle" class="text-xs text-emerald-600 font-medium">yes</span>
-              <span v-else class="text-xs text-gray-400">—</span>
+        <tbody class="divide-y divide-cream-200">
+          <tr v-for="p in data.products" :key="p.sku" class="hover:bg-cream-50">
+            <td class="px-5 py-3 font-mono text-xs text-cream-700">{{ p.sku }}</td>
+            <td class="px-5 py-3 text-cream-700">{{ p.product_name }}</td>
+            <td class="px-5 py-3 text-cream-500">{{ p.category || '—' }}</td>
+            <td class="px-5 py-3 text-cream-500">{{ p.unit_size || '—' }}</td>
+            <td class="px-5 py-3 text-right text-cream-700">{{ formatIDR(p.current_cogs) }}</td>
+            <td class="px-5 py-3 text-right text-cream-500">{{ formatIDR(p.current_packaging) }}</td>
+            <td class="px-5 py-3 text-center">
+              <span v-if="p.is_bundle" class="text-xs text-clay-600">yes</span>
+              <span v-else class="text-xs text-cream-400">—</span>
             </td>
-            <td class="px-4 py-2.5 text-center">
-              <span v-if="p.is_active" class="text-xs text-emerald-600 font-medium">active</span>
-              <span v-else class="text-xs text-gray-400">archived</span>
+            <td class="px-5 py-3 text-center">
+              <span v-if="p.is_active" class="text-xs text-cream-700">active</span>
+              <span v-else class="text-xs text-cream-400">archived</span>
             </td>
           </tr>
         </tbody>

@@ -26,41 +26,32 @@ async function logout() {
 
 function navClasses(active: boolean) {
   return [
-    'inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+    'inline-flex items-center px-3 py-1.5 rounded-md text-sm transition-colors',
     active
-      ? 'bg-emerald-50 text-emerald-700'
-      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+      ? 'text-cream-900 font-medium'
+      : 'text-cream-600 hover:text-cream-900',
   ]
 }
 
-// Click-outside helpers
 function closeMenus() {
   settingsOpen.value = false
   channelsOpen.value = false
 }
-onMounted(() => {
-  document.addEventListener('click', closeMenus)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', closeMenus)
-})
+onMounted(() => document.addEventListener('click', closeMenus))
+onBeforeUnmount(() => document.removeEventListener('click', closeMenus))
 </script>
 
 <template>
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
-    <div class="px-6 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-6">
-        <NuxtLink to="/" class="flex items-center" @click.stop>
-          <span class="text-base font-bold text-gray-900">Purela</span>
-          <span class="ml-1.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Dashboard</span>
+  <header class="bg-cream-50/80 backdrop-blur border-b border-cream-200 sticky top-0 z-30">
+    <div class="px-8 h-16 flex items-center justify-between max-w-screen-2xl mx-auto">
+      <div class="flex items-center gap-8">
+        <NuxtLink to="/" class="flex items-baseline gap-1.5" @click.stop>
+          <span class="display text-lg text-cream-900">Purela</span>
+          <span class="text-[10px] uppercase tracking-widest text-cream-500">Dashboard</span>
         </NuxtLink>
 
         <nav class="flex items-center gap-1">
-          <NuxtLink
-            to="/"
-            :class="navClasses(route.path === '/')"
-            @click.stop
-          >
+          <NuxtLink to="/" :class="navClasses(route.path === '/')" @click.stop>
             Overview
           </NuxtLink>
 
@@ -75,13 +66,13 @@ onBeforeUnmount(() => {
             </button>
             <div
               v-if="channelsOpen"
-              class="absolute left-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10"
+              class="absolute left-0 mt-1.5 w-44 bg-white border border-cream-200 rounded-md shadow-pop py-1 z-10"
             >
               <NuxtLink
                 v-for="link in channelLinks"
                 :key="link.to"
                 :to="link.to"
-                class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="block px-3 py-2 text-sm text-cream-700 hover:bg-cream-100 hover:text-cream-900"
                 @click="channelsOpen = false"
               >
                 {{ link.label }}
@@ -89,18 +80,10 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <NuxtLink
-            to="/sku"
-            :class="navClasses(route.path === '/sku')"
-            @click.stop
-          >
+          <NuxtLink to="/sku" :class="navClasses(route.path === '/sku')" @click.stop>
             SKUs
           </NuxtLink>
-          <NuxtLink
-            to="/data-quality"
-            :class="navClasses(route.path === '/data-quality')"
-            @click.stop
-          >
+          <NuxtLink to="/data-quality" :class="navClasses(route.path === '/data-quality')" @click.stop>
             Data Quality
           </NuxtLink>
         </nav>
@@ -108,33 +91,33 @@ onBeforeUnmount(() => {
 
       <div class="relative" @click.stop>
         <button
-          class="inline-flex items-center px-2.5 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+          class="inline-flex items-center justify-center size-8 rounded-md text-cream-500 hover:text-cream-900 hover:bg-cream-100"
           type="button"
           @click="settingsOpen = !settingsOpen; channelsOpen = false"
         >
-          <Icon name="lucide:settings" class="size-5" />
+          <Icon name="lucide:settings" class="size-4" />
         </button>
         <div
           v-if="settingsOpen"
-          class="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10"
+          class="absolute right-0 mt-1.5 w-52 bg-white border border-cream-200 rounded-md shadow-pop py-1 z-10"
         >
           <NuxtLink
             v-for="link in settingsLinks"
             :key="link.to"
             :to="link.to"
-            class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            class="flex items-center gap-3 px-3 py-2 text-sm text-cream-700 hover:bg-cream-100 hover:text-cream-900"
             @click="settingsOpen = false"
           >
-            <Icon :name="link.icon" class="size-4 text-gray-400" />
+            <Icon :name="link.icon" class="size-4 text-cream-400" />
             {{ link.label }}
           </NuxtLink>
-          <div class="border-t border-gray-100 my-1" />
+          <div class="border-t border-cream-200 my-1" />
           <button
             type="button"
-            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-cream-700 hover:bg-cream-100 hover:text-cream-900 text-left"
             @click="logout"
           >
-            <Icon name="lucide:log-out" class="size-4 text-gray-400" />
+            <Icon name="lucide:log-out" class="size-4 text-cream-400" />
             Log out
           </button>
         </div>

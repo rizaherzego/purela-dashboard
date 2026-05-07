@@ -41,6 +41,14 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        // Source Serif 4 for display headings, Inter for body — matches the
+        // "calm, paper-like" aesthetic.
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap',
+        },
       ],
     },
   },

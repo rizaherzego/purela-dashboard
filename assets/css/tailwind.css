@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: theme('colors.cream.700');
+    background-color: theme('colors.cream.50');
+  }
+
+  body {
+    font-family: theme('fontFamily.sans');
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  ::selection {
+    background-color: theme('colors.clay.100');
+    color: theme('colors.cream.800');
+  }
+
+  /* Inputs and buttons inherit the warm aesthetic */
+  input, select, textarea {
+    color: theme('colors.cream.800');
+  }
+  input::placeholder, textarea::placeholder {
+    color: theme('colors.cream.400');
+  }
+}
+
+@layer components {
+  .display {
+    font-family: theme('fontFamily.serif');
+    letter-spacing: theme('letterSpacing.display');
+    font-weight: 500;
+    color: theme('colors.cream.900');
+  }
+}

@@ -17,15 +17,9 @@ async function submit() {
     await navigateTo('/')
   }
   catch (e: any) {
-    if (e?.statusCode === 429) {
-      error.value = 'Too many failed attempts. Try again later.'
-    }
-    else if (e?.statusCode === 401) {
-      error.value = 'Incorrect password.'
-    }
-    else {
-      error.value = e?.statusMessage || 'Sign-in failed.'
-    }
+    if (e?.statusCode === 429)      error.value = 'Too many failed attempts. Try again later.'
+    else if (e?.statusCode === 401) error.value = 'Incorrect password.'
+    else                            error.value = e?.statusMessage || 'Sign-in failed.'
   }
   finally {
     loading.value = false
@@ -34,19 +28,19 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-cream-50 px-4">
     <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-gray-900">Purela</h1>
-        <p class="mt-1 text-sm text-gray-500">Internal dashboard</p>
+      <div class="text-center mb-10">
+        <h1 class="display text-3xl">Purela</h1>
+        <p class="mt-2 text-sm text-cream-500">Internal dashboard</p>
       </div>
 
       <form
-        class="bg-white rounded-xl border border-gray-200 p-6 space-y-4 shadow-sm"
+        class="bg-white border border-cream-200 rounded-lg p-7 space-y-5 shadow-card"
         @submit.prevent="submit"
       >
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5" for="pw">
+          <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2" for="pw">
             Shared password
           </label>
           <input
@@ -54,24 +48,24 @@ async function submit() {
             v-model="password"
             type="password"
             autocomplete="current-password"
-            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            class="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition"
             :disabled="loading"
             autofocus
           >
         </div>
 
-        <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+        <p v-if="error" class="text-sm text-clay-700">{{ error }}</p>
 
         <button
           type="submit"
-          class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-lg text-sm font-medium transition-colors"
+          class="w-full px-4 py-2.5 bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md text-sm font-medium transition-colors"
           :disabled="loading || !password"
         >
           {{ loading ? 'Signing in…' : 'Sign in' }}
         </button>
       </form>
 
-      <p class="mt-4 text-center text-xs text-gray-400">
+      <p class="mt-6 text-center text-xs text-cream-400">
         For Purela team members only.
       </p>
     </div>

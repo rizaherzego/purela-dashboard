@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Profitability Overview' })
+definePageMeta({ title: 'Overview' })
 
 const { formatIDRCompact, formatPercent, formatNumber, formatDate } = useFormat()
 
@@ -49,13 +49,13 @@ const cards = computed(() => {
       icon: 'lucide:wallet',
     },
     {
-      label: 'Effective Take Rate',
+      label: 'Effective take rate',
       value: formatPercent(c.effective_take_rate),
-      tooltip: 'Share of GMV that the marketplace keeps in fees, discounts, and returns. (gross − net) ÷ gross.',
+      tooltip: 'Share of GMV the marketplace keeps in fees, discounts, and returns. (gross − net) ÷ gross.',
       icon: 'lucide:percent',
     },
     {
-      label: 'Contribution Margin',
+      label: 'Contribution margin',
       value: formatIDRCompact(c.contribution_margin),
       hint: c.contribution_margin_pct != null ? `${formatPercent(c.contribution_margin_pct)} of GMV` : undefined,
       icon: 'lucide:bar-chart-2',
@@ -72,58 +72,54 @@ const cards = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-8">
     <!-- Freshness -->
-    <div v-if="data?.last_import" class="text-xs text-gray-500 flex items-center gap-2">
+    <div v-if="data?.last_import" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
       <span>
-        Last import: <span class="font-medium text-gray-700">{{ data.last_import.file_type_id }}</span>
-        ({{ data.last_import.channel_id }}) {{ formatDate(data.last_import.imported_at) }}
-        — coverage {{ data.last_import.period_start || '?' }} → {{ data.last_import.period_end || '?' }}
+        Last import: <span class="text-cream-700">{{ data.last_import.file_type_id }}</span>
+        ({{ data.last_import.channel_id }}) · {{ formatDate(data.last_import.imported_at) }}
+        · coverage {{ data.last_import.period_start || '?' }} → {{ data.last_import.period_end || '?' }}
       </span>
     </div>
-    <div v-else-if="!pending && !error" class="text-xs text-gray-500 flex items-center gap-2">
+    <div v-else-if="!pending && !error" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
-      <span>No imports yet. Visit <NuxtLink to="/upload" class="text-emerald-600 underline">Upload</NuxtLink> to add data.</span>
+      <span>No imports yet. Visit <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">Upload</NuxtLink> to add data.</span>
     </div>
 
     <!-- KPI cards -->
     <div v-if="pending" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-      <div v-for="i in 5" :key="i" class="h-28 bg-white rounded-xl border border-gray-200 animate-pulse" />
+      <div v-for="i in 5" :key="i" class="h-32 bg-white border border-cream-200 rounded-lg animate-pulse" />
     </div>
-    <p v-else-if="error" class="text-sm text-red-600">{{ error.message }}</p>
+    <p v-else-if="error" class="text-sm text-clay-700">{{ error.message }}</p>
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-      <KpiCard
-        v-for="card in cards"
-        :key="card.label"
-        v-bind="card"
-      />
+      <KpiCard v-for="card in cards" :key="card.label" v-bind="card" />
     </div>
 
     <!-- Chart slots -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 class="text-sm font-semibold text-gray-700 mb-1">GMV vs Net Settlement vs Contribution Margin</h2>
-        <p class="text-xs text-gray-400 mb-4">Weekly buckets, last 6 months</p>
-        <div class="h-48 flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded-lg">
+      <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
+        <h2 class="display text-base mb-1">GMV vs Net Settlement vs Margin</h2>
+        <p class="text-xs text-cream-500 mb-5">Weekly buckets, last 6 months</p>
+        <div class="h-48 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
           Trend chart wires up next turn
         </div>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 class="text-sm font-semibold text-gray-700 mb-1">Fee Waterfall</h2>
-        <p class="text-xs text-gray-400 mb-4">Last fully-settled month</p>
-        <div class="h-48 flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded-lg">
+      </section>
+      <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
+        <h2 class="display text-base mb-1">Fee waterfall</h2>
+        <p class="text-xs text-cream-500 mb-5">Last fully-settled month</p>
+        <div class="h-48 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
           Waterfall wires up next turn
         </div>
-      </div>
+      </section>
     </div>
 
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="text-sm font-semibold text-gray-700 mb-1">Channel breakdown</h2>
-      <p class="text-xs text-gray-400 mb-4">Contribution margin per channel per month</p>
-      <div class="h-40 flex items-center justify-center text-xs text-gray-400 bg-gray-50 rounded-lg">
+    <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
+      <h2 class="display text-base mb-1">Channel breakdown</h2>
+      <p class="text-xs text-cream-500 mb-5">Contribution margin per channel per month</p>
+      <div class="h-40 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
         Stacked bar wires up next turn
       </div>
-    </div>
+    </section>
   </div>
 </template>

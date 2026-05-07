@@ -51,62 +51,62 @@ async function confirmImport() {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+  <div class="bg-white border border-cream-200 rounded-lg p-7 space-y-6 shadow-card max-w-3xl">
     <!-- Duplicate -->
-    <div v-if="payload.duplicate" class="space-y-3">
-      <div class="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-        <Icon name="lucide:alert-triangle" class="size-5 text-amber-600 mt-0.5 shrink-0" />
-        <div class="text-sm text-amber-900">
-          <p class="font-medium">This file has already been imported.</p>
-          <p class="mt-1 text-amber-800">
+    <div v-if="payload.duplicate" class="space-y-4">
+      <div class="flex items-start gap-3 p-4 bg-clay-50 border border-clay-100 rounded-md">
+        <Icon name="lucide:alert-circle" class="size-5 text-clay-600 mt-0.5 shrink-0" />
+        <div class="text-sm text-clay-800">
+          <p class="font-medium text-clay-900">This file has already been imported.</p>
+          <p class="mt-1.5 text-clay-700">
             Existing batch #{{ payload.existing.batch_id }} —
             {{ payload.existing.row_count }} rows,
             covering {{ payload.existing.period_start }} – {{ payload.existing.period_end }}.
           </p>
         </div>
       </div>
-      <button class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50" @click="emit('cancel')">
+      <button class="px-4 py-2 text-sm border border-cream-200 rounded-md hover:bg-cream-100" @click="emit('cancel')">
         Back
       </button>
     </div>
 
     <!-- Preview -->
-    <div v-else class="space-y-5">
+    <div v-else class="space-y-6">
       <div>
-        <h3 class="text-sm font-semibold text-gray-700 mb-2">Preview</h3>
-        <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <dt class="text-gray-500">File</dt>           <dd class="font-medium text-gray-900">{{ payload.file_name }}</dd>
-          <dt class="text-gray-500">Type</dt>           <dd class="font-medium text-gray-900">{{ payload.file_type?.display_name }}</dd>
-          <dt class="text-gray-500">Rows</dt>           <dd class="font-medium text-gray-900">{{ payload.row_count?.toLocaleString() }}</dd>
-          <dt class="text-gray-500">Date range</dt>     <dd class="font-medium text-gray-900">{{ payload.period_start || '?' }} → {{ payload.period_end || '?' }}</dd>
+        <h3 class="display text-lg mb-4">Preview</h3>
+        <dl class="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-3 text-sm">
+          <dt class="text-cream-500">File</dt>           <dd class="text-cream-800">{{ payload.file_name }}</dd>
+          <dt class="text-cream-500">Type</dt>           <dd class="text-cream-800">{{ payload.file_type?.display_name }}</dd>
+          <dt class="text-cream-500">Rows</dt>           <dd class="text-cream-800">{{ payload.row_count?.toLocaleString() }}</dd>
+          <dt class="text-cream-500">Date range</dt>     <dd class="text-cream-800">{{ payload.period_start || '?' }} → {{ payload.period_end || '?' }}</dd>
         </dl>
       </div>
 
-      <div v-if="hasMissing" class="p-3 bg-red-50 border border-red-200 rounded-lg">
-        <p class="text-sm font-medium text-red-900 mb-1">Missing required columns:</p>
-        <ul class="text-xs text-red-800 space-y-0.5">
+      <div v-if="hasMissing" class="p-4 bg-clay-50 border border-clay-100 rounded-md">
+        <p class="text-sm font-medium text-clay-900 mb-2">Missing required columns</p>
+        <ul class="text-xs text-clay-800 space-y-1">
           <li v-for="col in payload.missing_columns" :key="col" class="font-mono">{{ col }}</li>
         </ul>
-        <p class="mt-2 text-xs text-red-700">This usually means you uploaded the wrong file type. Cancel and try again.</p>
+        <p class="mt-3 text-xs text-clay-700">This usually means the wrong file type was selected. Cancel and try again.</p>
       </div>
 
-      <div v-if="(payload.extra_columns?.length ?? 0) > 0" class="text-xs text-gray-500">
-        <span class="font-medium text-gray-600">Extra columns detected (will be preserved as raw_data):</span>
+      <div v-if="(payload.extra_columns?.length ?? 0) > 0" class="text-xs text-cream-500">
+        <span class="text-cream-700">Extra columns detected (preserved as raw_data):</span>
         <span class="ml-1 font-mono">{{ payload.extra_columns?.slice(0, 6).join(', ') }}{{ (payload.extra_columns?.length ?? 0) > 6 ? '…' : '' }}</span>
       </div>
 
       <div v-if="payload.sample_rows?.length">
-        <h3 class="text-sm font-semibold text-gray-700 mb-2">First {{ payload.sample_rows.length }} rows</h3>
-        <div class="overflow-x-auto border border-gray-100 rounded-lg">
+        <h3 class="text-xs uppercase tracking-wider text-cream-500 font-medium mb-3">First {{ payload.sample_rows.length }} rows</h3>
+        <div class="overflow-x-auto border border-cream-200 rounded-md">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50 text-gray-500">
+            <thead class="bg-cream-100 text-cream-600">
               <tr>
-                <th v-for="c in sampleColumns" :key="c" class="px-2 py-1.5 text-left font-medium whitespace-nowrap">{{ c }}</th>
+                <th v-for="c in sampleColumns" :key="c" class="px-3 py-2 text-left font-medium whitespace-nowrap">{{ c }}</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-cream-200">
               <tr v-for="(r, i) in payload.sample_rows" :key="i">
-                <td v-for="c in sampleColumns" :key="c" class="px-2 py-1.5 whitespace-nowrap text-gray-700">
+                <td v-for="c in sampleColumns" :key="c" class="px-3 py-2 whitespace-nowrap text-cream-700">
                   {{ r[c] ?? '—' }}
                 </td>
               </tr>
@@ -115,18 +115,18 @@ async function confirmImport() {
         </div>
       </div>
 
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+      <p v-if="error" class="text-sm text-clay-700">{{ error }}</p>
 
-      <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+      <div class="flex items-center gap-3 pt-4 border-t border-cream-200">
         <button
-          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-lg text-sm font-medium"
+          class="px-5 py-2.5 bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md text-sm font-medium transition-colors"
           :disabled="importing || hasMissing"
           @click="confirmImport"
         >
           {{ importing ? 'Importing…' : 'Confirm import' }}
         </button>
         <button
-          class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+          class="px-4 py-2 text-sm text-cream-600 hover:text-cream-900 hover:bg-cream-100 rounded-md transition"
           :disabled="importing"
           @click="emit('cancel')"
         >

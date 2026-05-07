@@ -60,18 +60,18 @@ async function submit() {
 
 <template>
   <form
-    class="bg-white rounded-xl border border-gray-200 p-6 space-y-5 max-w-xl"
+    class="bg-white border border-cream-200 rounded-lg p-7 space-y-6 max-w-xl shadow-card"
     @submit.prevent="submit"
   >
-    <p v-if="channelsError" class="text-sm text-red-600">
+    <p v-if="channelsError" class="text-sm text-clay-700">
       Failed to load channels. {{ channelsError.message }}
     </p>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1.5">Channel</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">Channel</label>
       <select
         v-model="channelId"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        class="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition"
         :disabled="channelsLoading"
       >
         <option value="" disabled>Select a channel…</option>
@@ -82,10 +82,10 @@ async function submit() {
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1.5">File type</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">File type</label>
       <select
         v-model="fileTypeId"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-50"
+        class="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition disabled:opacity-50"
         :disabled="!channelId"
       >
         <option value="" disabled>{{ channelId ? 'Select a file type…' : 'Pick a channel first' }}</option>
@@ -93,27 +93,27 @@ async function submit() {
           {{ ft.display_name }}
         </option>
       </select>
-      <p v-if="selectedFileType?.description" class="mt-1.5 text-xs text-gray-500">
+      <p v-if="selectedFileType?.description" class="mt-2 text-xs text-cream-500 leading-relaxed">
         {{ selectedFileType.description }}
       </p>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1.5">File</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">File</label>
       <input
         type="file"
         accept=".csv,.xlsx,.xls"
-        class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+        class="block w-full text-sm text-cream-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-clay-50 file:text-clay-700 hover:file:bg-clay-100"
         @change="onFile"
       >
-      <p class="mt-1.5 text-xs text-gray-400">CSV or XLSX, max 50 MB.</p>
+      <p class="mt-2 text-xs text-cream-400">CSV or XLSX, max 50 MB.</p>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="text-sm text-clay-700">{{ error }}</p>
 
     <button
       type="submit"
-      class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-lg text-sm font-medium"
+      class="px-5 py-2.5 bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md text-sm font-medium transition-colors"
       :disabled="!channelId || !fileTypeId || !file || submitting"
     >
       {{ submitting ? 'Staging…' : 'Stage upload' }}
