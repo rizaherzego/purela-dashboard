@@ -2,63 +2,261 @@
 const route = useRoute()
 const channelParam = computed(() => String(route.params.channel))
 
-const channelLabel: Record<string, string> = {
-  tiktok: 'TikTok Shop',
-  shopee: 'Shopee',
+const CHANNEL_LABEL: Record<string, string> = {
+  tiktok:    'TikTok Shop',
+  shopee:    'Shopee',
   tokopedia: 'Tokopedia',
-  website: 'Direct Website',
+  website:   'Direct Website',
 }
-const channelId: Record<string, string> = {
-  tiktok: 'tiktok_shop',
-  shopee: 'shopee',
+const CHANNEL_ID: Record<string, string> = {
+  tiktok:    'tiktok_shop',
+  shopee:    'shopee',
   tokopedia: 'tokopedia',
-  website: 'website',
+  website:   'website',
 }
 
 definePageMeta({ title: 'Channel deep-dive' })
-useHead(() => ({
-  title: () => `${channelLabel[channelParam.value] ?? channelParam.value} — Purela`,
-}))
+useHead(() => ({ title: `${CHANNEL_LABEL[channelParam.value] ?? channelParam.value} — Purela` }))
+
+const dbChannelId = computed(() => CHANNEL_ID[channelParam.value] ?? channelParam.value)
+const { formatIDRCompact, formatPercent } = useFormat()
+
+// ── Chart data ────────────────────────────────────────────────────────────
+const { data: trendData } = useFetch<{
+  weeks: string[]
+  take_rate: (number | null)[]
+  hist_labels: string[]
+  hist_counts: number[]
+}>(() => `/api/metrics/channel-trend?channel_id=${dbChannelId.value}`)
+
+const { data: feeData } = useFetch<{
+  months: string[]
+  monthLabels: string[]
+  seller_discounts: number[]
+  platform_commission: number[]
+  affiliate: number[]
+  service_fees: number[]
+  transaction_fees: number[]
+  shipping: number[]
+  refunds: number[]
+  cm_pct: number[]
+}>(() => `/api/metrics/channel-fee-composition?channel_id=${dbChannelId.value}`)
+
+// ── Chart theme ───────────────────────────────────────────────────────────
+const TIP = {
+  backgroundColor: '#FFFEF8',
+  borderColor:     '#E8E2D9',
+  borderRadius:    8,
+  textStyle:       { fontFamily: 'Inter, sans-serif', color: '#5C4A3A', fontSize: 12 },
+  extraCssText:    'box-shadow:0 4px 16px rgba(0,0,0,0.06);',
+}
+const AX_LABEL = { color: '#9C8A77', fontSize: 10, fontFamily: 'Inter, sans-serif' }
+const SPLIT    = { lineStyle: { color: '#F0EDE8', type: 'dashed' as const } }
+const AX_LINE  = { lineStyle: { color: '#E8E2D9' } }
+
+// ── Chart: take-rate trend (line) ─────────────────────────────────────────
+const trendOption = computed(() => {
+  const d = trendData.value
+  if (!d?.weeks?.length) return {}
+  return {
+    animation: true,
+    grid: { left: 16, right: 16, top: 8, bottom: 28, containLabel: true },
+    tooltip: {
+      ...TIP,
+      trigger: 'axis',
+      formatter: (params: any[]) => {
+        const p = params[0]
+        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${p.value != null ? p.value + '%' : '—'}</b> effective take rate`
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: d.weeks,
+      axisLabel: { ...AX_LABEL, rotate: 30 },
+      axisLine: AX_LINE,
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { ...AX_LABEL, formatter: (v: number) => `${v}%` },
+      splitLine: SPLIT,
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      name: 'Take rate',
+      type: 'line',
+      data: d.take_rate,
+      smooth: true,
+      symbol: 'none',
+      connectNulls: false,
+      lineStyle: { color: '#C15F3C', width: 2 },
+      itemStyle: { color: '#C15F3C' },
+      areaStyle: { color: 'rgba(193,95,60,0.08)' },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        data: [{ yAxis: 15, name: '~Typical' }],
+        lineStyle: { color: '#9C8A77', type: 'dashed', width: 1 },
+        label: { color: '#9C8A77', fontSize: 10, position: 'insideEndTop', formatter: '~15% typical' },
+      },
+    }],
+  }
+})
+
+// ── Chart: take-rate histogram ────────────────────────────────────────────
+const histOption = computed(() => {
+  const d = trendData.value
+  if (!d?.hist_labels?.length) return {}
+  return {
+    animation: true,
+    grid: { left: 16, right: 16, top: 8, bottom: 52, containLabel: true },
+    tooltip: {
+      ...TIP,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any[]) => {
+        const p = params[0]
+        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${p.value}</b> orders`
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: d.hist_labels,
+      axisLabel: { ...AX_LABEL, rotate: 45, interval: 4 },
+      axisLine: AX_LINE,
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: AX_LABEL,
+      splitLine: SPLIT,
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      name: 'Orders',
+      type: 'bar',
+      data: d.hist_counts,
+      barMaxWidth: 18,
+      itemStyle: { color: '#C15F3C', borderRadius: [2, 2, 0, 0] },
+    }],
+  }
+})
+
+// ── Chart: fee composition stacked area ──────────────────────────────────
+const FEE_COLORS: Record<string, string> = {
+  seller_discounts:    '#D4916E',
+  platform_commission: '#C15F3C',
+  affiliate:           '#8B7355',
+  service_fees:        '#9E7B6A',
+  transaction_fees:    '#C4975A',
+  shipping:            '#4A8FA3',
+  refunds:             '#7C6A9E',
+}
+
+function areaSeries(name: string, data: number[], key: string) {
+  return {
+    name,
+    type: 'line',
+    stack: 'fees',
+    smooth: true,
+    symbol: 'none',
+    data,
+    lineStyle: { width: 0 },
+    areaStyle: { color: FEE_COLORS[key] ?? '#9C8A77' },
+    emphasis: { lineStyle: { width: 0 } },
+  }
+}
+
+const compositionOption = computed(() => {
+  const d = feeData.value
+  if (!d?.months?.length) return {}
+  return {
+    animation: true,
+    grid: { left: 16, right: 16, top: 36, bottom: 28, containLabel: true },
+    tooltip: {
+      ...TIP,
+      trigger: 'axis',
+      formatter: (params: any[]) => {
+        const label = params[0].axisValue
+        const total = params.reduce((s: number, p: any) => s + (Number(p.value) || 0), 0)
+        const rows = params.map(p => `${p.marker} ${p.seriesName}: <b>${p.value}%</b>`)
+        return `<span style="color:#9C8A77;font-size:11px">${label}</span><br>${rows.join('<br>')}<br>Accounted: <b>${total.toFixed(1)}%</b>`
+      },
+    },
+    legend: {
+      top: 0,
+      textStyle: { ...AX_LABEL, fontSize: 10 },
+      icon: 'circle',
+      itemWidth: 7,
+      itemHeight: 7,
+    },
+    xAxis: {
+      type: 'category',
+      data: d.monthLabels,
+      axisLabel: AX_LABEL,
+      axisLine: AX_LINE,
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { ...AX_LABEL, formatter: (v: number) => `${v}%` },
+      splitLine: SPLIT,
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [
+      areaSeries('Seller discounts',    d.seller_discounts,    'seller_discounts'),
+      areaSeries('Platform commission', d.platform_commission, 'platform_commission'),
+      areaSeries('Affiliate',           d.affiliate,           'affiliate'),
+      areaSeries('Service fees',        d.service_fees,        'service_fees'),
+      areaSeries('Transaction fees',    d.transaction_fees,    'transaction_fees'),
+      areaSeries('Shipping',            d.shipping,            'shipping'),
+      areaSeries('Refunds',             d.refunds,             'refunds'),
+    ],
+  }
+})
 </script>
 
 <template>
   <div class="space-y-8">
     <div class="flex items-baseline justify-between">
       <h2 class="display text-xl">
-        {{ channelLabel[channelParam] ?? channelParam }}
+        {{ CHANNEL_LABEL[channelParam] ?? channelParam }}
       </h2>
-      <span class="text-xs font-mono text-cream-500">{{ channelId[channelParam] ?? channelParam }}</span>
+      <span class="text-xs font-mono text-cream-500">{{ dbChannelId }}</span>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Take-rate trend -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-1">Effective take rate trend</h3>
-        <p class="text-xs text-cream-500 mb-5">Weekly, with industry benchmark line</p>
-        <div class="h-48 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
-          Wires up next turn
-        </div>
+        <h3 class="display text-base mb-0.5">Effective take-rate trend</h3>
+        <p class="text-xs text-cream-500 mb-4">Weekly — settled orders only · dashed = rough industry baseline</p>
+        <AppChart :option="trendOption" height="220px" />
       </section>
+
+      <!-- Distribution histogram -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-1">Take-rate distribution</h3>
-        <p class="text-xs text-cream-500 mb-5">Histogram, last fully-settled month</p>
-        <div class="h-48 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
-          Wires up next turn
-        </div>
+        <h3 class="display text-base mb-0.5">Take-rate distribution</h3>
+        <p class="text-xs text-cream-500 mb-4">Per-order histogram, last 26 weeks</p>
+        <AppChart :option="histOption" height="220px" />
       </section>
+
+      <!-- Fee composition full-width -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card lg:col-span-2">
-        <h3 class="display text-base mb-1">Fee composition over time</h3>
-        <p class="text-xs text-cream-500 mb-5">Stacked area, % of GMV per month</p>
-        <div class="h-48 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
-          Wires up next turn
-        </div>
+        <h3 class="display text-base mb-0.5">Fee composition over time</h3>
+        <p class="text-xs text-cream-500 mb-4">Stacked area — each layer is % of gross GMV per month</p>
+        <AppChart :option="compositionOption" height="260px" />
       </section>
     </div>
 
+    <!-- Drill-down placeholder (next turn) -->
     <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h3 class="display text-base mb-1">Drill-down: orders by take rate</h3>
-      <p class="text-xs text-cream-500 mb-5">Sortable. Click an order to see per-line-item economics.</p>
-      <div class="h-32 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
-        Wires up next turn
+      <h3 class="display text-base mb-0.5">Drill-down: orders by take rate</h3>
+      <p class="text-xs text-cream-500 mb-4">Sortable. Click an order to see per-line-item economics.</p>
+      <div class="h-24 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
+        Order drill-down table — next milestone
       </div>
     </section>
   </div>

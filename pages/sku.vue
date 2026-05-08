@@ -22,17 +22,103 @@ function cmTone(pct: number | null): string {
   if (pct >= 0.10) return 'text-cream-700'
   return 'text-clay-800'
 }
+
+// ── Top-10 SKUs chart ─────────────────────────────────────────────────────
+const TIP = {
+  backgroundColor: '#FFFEF8',
+  borderColor:     '#E8E2D9',
+  borderRadius:    8,
+  textStyle:       { fontFamily: 'Inter, sans-serif', color: '#5C4A3A', fontSize: 12 },
+  extraCssText:    'box-shadow:0 4px 16px rgba(0,0,0,0.06);',
+}
+const AX_LABEL = { color: '#9C8A77', fontSize: 10, fontFamily: 'Inter, sans-serif' }
+const SPLIT    = { lineStyle: { color: '#F0EDE8', type: 'dashed' as const } }
+
+const top10 = computed(() =>
+  [...(data.value?.rows ?? [])]
+    .filter(r => r.total_cm != null)
+    .sort((a, b) => (b.total_cm ?? 0) - (a.total_cm ?? 0))
+    .slice(0, 10),
+)
+
+const skuChartOption = computed(() => {
+  if (!top10.value.length) return {}
+  return {
+    animation: true,
+    grid: { left: 16, right: 72, top: 8, bottom: 8, containLabel: true },
+    tooltip: {
+      ...TIP,
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any[]) => {
+        const p = params[0]
+        const row = top10.value[p.dataIndex]
+        return [
+          `<b>${row.sku}</b>`,
+          row.product_name ? `<span style="color:#9C8A77">${row.product_name}</span>` : '',
+          `CM: <b>${formatIDRCompact(p.value)}</b>`,
+          row.cm_pct != null ? `CM%: <b>${formatPercent(row.cm_pct)}</b>` : '',
+        ].filter(Boolean).join('<br>')
+      },
+    },
+    xAxis: {
+      type: 'value',
+      axisLabel: { ...AX_LABEL, formatter: (v: number) => formatIDRCompact(v) },
+      splitLine: SPLIT,
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    yAxis: {
+      type: 'category',
+      data: top10.value.map(r => r.sku),
+      inverse: true,
+      axisLabel: { ...AX_LABEL, fontFamily: 'monospace', fontSize: 11 },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: top10.value.map(r => r.total_cm),
+      barMaxWidth: 22,
+      itemStyle: {
+        color: (params: any) => {
+          const pct = top10.value[params.dataIndex]?.cm_pct ?? 0
+          return pct >= 0.25 ? '#4A8FA3' : pct >= 0.10 ? '#C15F3C' : '#D4916E'
+        },
+        borderRadius: [0, 4, 4, 0],
+      },
+      label: {
+        show: true,
+        position: 'right',
+        formatter: (params: any) => {
+          const pct = top10.value[params.dataIndex]?.cm_pct
+          return pct != null ? formatPercent(pct) : ''
+        },
+        color: '#9C8A77',
+        fontSize: 10,
+      },
+    }],
+  }
+})
 </script>
 
 <template>
   <div class="space-y-6">
     <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-      Per-SKU per-channel profitability, sortable by absolute contribution margin.
+      Per-SKU per-channel profitability, ranked by absolute contribution margin.
       <span class="text-clay-600">Strong (≥25%)</span> ·
       <span class="text-cream-700">Healthy (10–25%)</span> ·
       <span class="text-clay-800">At risk (&lt;10%)</span>.
     </p>
 
+    <!-- Top-10 bar chart -->
+    <section v-if="!pending && top10.length" class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
+      <h2 class="display text-base mb-0.5">Top 10 SKUs by contribution margin</h2>
+      <p class="text-xs text-cream-500 mb-4">Bars show absolute CM · label is CM%</p>
+      <AppChart :option="skuChartOption" height="280px" />
+    </section>
+
+    <!-- Detailed table -->
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
       <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
