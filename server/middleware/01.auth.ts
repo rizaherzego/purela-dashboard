@@ -15,12 +15,16 @@ const PUBLIC_PREFIXES = [
   '/favicon',
 ]
 
+// Static asset extensions served from public/ — never gate these behind auth.
+const PUBLIC_ASSET_EXTS = /\.(css|js|map|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|webp|avif)$/i
+
 export default defineEventHandler(async (event) => {
   const path = event.path || event.node.req.url || '/'
   const cleanPath = path.split('?')[0]
 
   if (PUBLIC_PATHS.has(cleanPath)) return
   if (PUBLIC_PREFIXES.some(prefix => cleanPath.startsWith(prefix))) return
+  if (PUBLIC_ASSET_EXTS.test(cleanPath)) return
 
   const session = await getUserSession(event)
   if (session?.user) return
