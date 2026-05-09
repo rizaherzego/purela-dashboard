@@ -251,6 +251,19 @@ const breakdownOption = computed(() => {
     })),
   }
 })
+
+// ── Recommendations ────────────────────────────────────────────────────────
+const { data: recommendationsData } = useFetch<{
+  recommendations: Array<{
+    id: string
+    icon: string
+    title: string
+    severity: 'info' | 'warn' | 'critical'
+    message: string
+    value?: string | number
+    actionUrl?: string
+  }>
+}>('/api/metrics/recommendations')
 </script>
 
 <template>
@@ -277,6 +290,24 @@ const breakdownOption = computed(() => {
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
       <KpiCard v-for="card in cards" :key="card.label" v-bind="card" />
     </div>
+
+    <!-- Recommendations -->
+    <section v-if="recommendationsData?.recommendations?.length" class="bg-gradient-to-br from-cream-50 to-cream-50/50 border border-cream-200 rounded-lg p-6 shadow-card">
+      <div class="mb-4">
+        <div class="flex items-center gap-2 mb-1">
+          <Icon name="lucide:lightbulb" class="size-4 text-clay-500" />
+          <h2 class="display text-base">Insights & recommendations</h2>
+        </div>
+        <p class="text-xs text-cream-500">Based on your last 30 days of data</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        <RecommendationCard
+          v-for="rec in recommendationsData.recommendations"
+          :key="rec.id"
+          v-bind="rec"
+        />
+      </div>
+    </section>
 
     <!-- Trend + Waterfall side by side -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
