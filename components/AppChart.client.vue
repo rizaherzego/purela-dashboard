@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart, BarChart } from 'echarts/charts'
+import { LineChart, BarChart, SankeyChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
@@ -10,7 +10,7 @@ import {
 } from 'echarts/components'
 import VChart from 'vue-echarts'
 
-use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, BarChart, SankeyChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
 
 const props = defineProps<{
   option: Record<string, any>

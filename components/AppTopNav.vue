@@ -83,6 +83,9 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenus))
           <NuxtLink to="/sku" :class="navClasses(route.path === '/sku')" @click.stop>
             SKUs
           </NuxtLink>
+          <NuxtLink to="/flow" :class="navClasses(route.path === '/flow')" @click.stop>
+            Flow
+          </NuxtLink>
           <NuxtLink to="/data-quality" :class="navClasses(route.path === '/data-quality')" @click.stop>
             Data Quality
           </NuxtLink>
