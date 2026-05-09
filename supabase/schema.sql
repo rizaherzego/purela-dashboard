@@ -897,8 +897,11 @@ BEGIN
                 WHEN o.order_status ILIKE '%selesai%' THEN 'completed'
                 ELSE COALESCE(o.order_status, s.type)
             END                                              AS order_status,
-            (COALESCE(s.refund_subtotal_after_discounts, 0) <> 0
-             OR (o.order_status ILIKE '%refund%'))           AS is_returned,
+            COALESCE(
+                (COALESCE(s.refund_subtotal_after_discounts, 0) <> 0
+                 OR (o.order_status ILIKE '%refund%')),
+                FALSE
+            )                                                AS is_returned,
             o.seller_sku                                     AS external_sku,
             m.internal_sku                                   AS sku,
             o.product_name                                   AS product_name,

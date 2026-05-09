@@ -34,3 +34,6 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/
+
+# MCP config (contains DB credentials)
+.mcp.json
