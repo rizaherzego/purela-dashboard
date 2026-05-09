@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Products' })
+definePageMeta({ titleKey: 'products.title' })
 const { formatIDR } = useFormat()
 
 interface Product {
@@ -47,13 +47,13 @@ async function onDeleted() {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-        Master product list and current COGS. Click any row to edit.
+        {{ $t('products.intro') }}
       </p>
       <button
         class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
         @click="openNewForm"
       >
-        + Add product
+        {{ $t('products.addProduct') }}
       </button>
     </div>
 
@@ -67,22 +67,22 @@ async function onDeleted() {
     />
 
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
-      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
+      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!data?.products?.length" class="p-12 text-center text-sm text-cream-500">
-        No products yet. Insert rows into <code class="font-mono bg-cream-100 px-1.5 py-0.5 rounded">products</code> via SQL.
+        {{ $t('products.noneYet') }} <code class="font-mono bg-cream-100 px-1.5 py-0.5 rounded">products</code> {{ $t('products.viaSql') }}
       </div>
       <table v-else class="w-full text-sm">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
-            <th class="px-5 py-3 text-left font-medium">SKU</th>
-            <th class="px-5 py-3 text-left font-medium">Name</th>
-            <th class="px-5 py-3 text-left font-medium">Category</th>
-            <th class="px-5 py-3 text-left font-medium">Size</th>
-            <th class="px-5 py-3 text-right font-medium">COGS</th>
-            <th class="px-5 py-3 text-right font-medium">Packaging</th>
-            <th class="px-5 py-3 text-center font-medium">Bundle</th>
-            <th class="px-5 py-3 text-center font-medium">Active</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('products.columns.sku') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('products.columns.name') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('products.columns.category') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('products.columns.size') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('products.columns.cogs') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('products.columns.packaging') }}</th>
+            <th class="px-5 py-3 text-center font-medium">{{ $t('products.columns.bundle') }}</th>
+            <th class="px-5 py-3 text-center font-medium">{{ $t('products.columns.active') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">
@@ -99,12 +99,12 @@ async function onDeleted() {
             <td class="px-5 py-3 text-right text-cream-700">{{ formatIDR(p.current_cogs) }}</td>
             <td class="px-5 py-3 text-right text-cream-500">{{ formatIDR(p.current_packaging) }}</td>
             <td class="px-5 py-3 text-center">
-              <span v-if="p.is_bundle" class="text-xs text-clay-600">yes</span>
+              <span v-if="p.is_bundle" class="text-xs text-clay-600">{{ $t('common.yes') }}</span>
               <span v-else class="text-xs text-cream-400">—</span>
             </td>
             <td class="px-5 py-3 text-center">
-              <span v-if="p.is_active" class="text-xs text-cream-700">active</span>
-              <span v-else class="text-xs text-cream-400">archived</span>
+              <span v-if="p.is_active" class="text-xs text-cream-700">{{ $t('common.active') }}</span>
+              <span v-else class="text-xs text-cream-400">{{ $t('common.archived') }}</span>
             </td>
           </tr>
         </tbody>

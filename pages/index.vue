@@ -1,10 +1,10 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Overview' })
+definePageMeta({ titleKey: 'nav.overview' })
 
+const { t } = useI18n()
 const { formatIDRCompact, formatPercent, formatNumber, formatDate } = useFormat()
 const { from, to, queryString } = useDateRange()
 
-// ── KPI cards (SSR-awaited) ────────────────────────────────────────────────
 interface Aggregate {
   gross_revenue: number
   net_settlement: number
@@ -32,8 +32,9 @@ const { data, pending, error } = await useFetch<OverviewResponse>(
 function pctChange(curr: number, prev: number) {
   if (!prev || prev === 0) return null
   const delta = (curr - prev) / Math.abs(prev)
+  const deltaText = `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}%`
   return {
-    text: `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}% vs prior period`,
+    text: t('kpi.vsPriorPeriod', { delta: deltaText }),
     type: (delta > 0.001 ? 'up' : delta < -0.001 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
   }
 }
@@ -54,14 +55,14 @@ const emptyState = computed(() => {
   if (fs.total_rows === 0) {
     return {
       kind: 'no-fact-data' as const,
-      title: 'No fact data yet',
-      message: 'Analytics are computed from settled orders. Upload a TikTok Shop settlement file (and optionally an orders export) to populate them — affiliate, ads, or returns files alone are stored but don\'t feed the fact table.',
+      title: t('overview.emptyNoFactTitle'),
+      message: t('overview.emptyNoFactMsg'),
     }
   }
   return {
     kind: 'empty-range' as const,
-    title: 'No data in this range',
-    message: `Available data: ${fs.min_date} → ${fs.max_date}.`,
+    title: t('overview.emptyRangeTitle'),
+    message: t('overview.emptyRangeMsg', { from: fs.min_date, to: fs.max_date }),
   }
 })
 
@@ -69,15 +70,14 @@ const cards = computed(() => {
   if (!data.value) return []
   const c = data.value.current, p = data.value.previous
   return [
-    { label: 'Gross GMV',        value: formatIDRCompact(c.gross_revenue),      change: pctChange(c.gross_revenue, p.gross_revenue)?.text,     changeType: pctChange(c.gross_revenue, p.gross_revenue)?.type,     icon: 'lucide:trending-up' },
-    { label: 'Net Settlement',   value: formatIDRCompact(c.net_settlement),      change: pctChange(c.net_settlement, p.net_settlement)?.text,   changeType: pctChange(c.net_settlement, p.net_settlement)?.type,   icon: 'lucide:wallet' },
-    { label: 'Effective take rate', value: formatPercent(c.effective_take_rate), tooltip: 'Share of GMV kept in fees, discounts & returns. (gross − net) ÷ gross.', icon: 'lucide:percent' },
-    { label: 'Contribution margin', value: formatIDRCompact(c.contribution_margin), hint: c.contribution_margin_pct != null ? `${formatPercent(c.contribution_margin_pct)} of GMV` : undefined, icon: 'lucide:bar-chart-2' },
-    { label: 'Orders',           value: formatNumber(c.order_count),             change: pctChange(c.order_count, p.order_count)?.text,         changeType: pctChange(c.order_count, p.order_count)?.type,         icon: 'lucide:shopping-cart' },
+    { label: t('kpi.grossGmv'),               value: formatIDRCompact(c.gross_revenue),       change: pctChange(c.gross_revenue, p.gross_revenue)?.text,     changeType: pctChange(c.gross_revenue, p.gross_revenue)?.type,     icon: 'lucide:trending-up' },
+    { label: t('kpi.netSettlement'),          value: formatIDRCompact(c.net_settlement),       change: pctChange(c.net_settlement, p.net_settlement)?.text,   changeType: pctChange(c.net_settlement, p.net_settlement)?.type,   icon: 'lucide:wallet' },
+    { label: t('kpi.effectiveTakeRate'),      value: formatPercent(c.effective_take_rate),     tooltip: t('kpi.effectiveTakeRateTooltip'),                    icon: 'lucide:percent' },
+    { label: t('kpi.contributionMargin'),     value: formatIDRCompact(c.contribution_margin), hint: c.contribution_margin_pct != null ? t('kpi.ofGmv', { pct: formatPercent(c.contribution_margin_pct) }) : undefined, icon: 'lucide:bar-chart-2' },
+    { label: t('kpi.orders'),                 value: formatNumber(c.order_count),              change: pctChange(c.order_count, p.order_count)?.text,         changeType: pctChange(c.order_count, p.order_count)?.type,         icon: 'lucide:shopping-cart' },
   ]
 })
 
-// ── Chart data (non-awaited, loads progressively) ─────────────────────────
 const { data: trendData } = useFetch<{
   weeks: string[]; gmv: number[]; net: number[]; cm: number[]
 }>(() => `/api/metrics/overview-trend?${queryString.value}`)
@@ -95,7 +95,6 @@ const { data: breakdownData } = useFetch<{
   series: { channel_id: string; label: string; gmv: number[]; cm: number[] }[]
 }>(() => `/api/metrics/channel-breakdown?${queryString.value}`)
 
-// ── Shared chart theme helpers ────────────────────────────────────────────
 const TIP = {
   backgroundColor: '#FFFEF8',
   borderColor:     '#E8E2D9',
@@ -107,7 +106,6 @@ const AX_LABEL = { color: '#9C8A77', fontSize: 10, fontFamily: 'Inter, sans-seri
 const SPLIT    = { lineStyle: { color: '#F0EDE8', type: 'dashed' as const } }
 const AX_LINE  = { lineStyle: { color: '#E8E2D9' } }
 
-// ── Chart: GMV / net / CM trend (multi-line) ──────────────────────────────
 const trendOption = computed(() => {
   const d = trendData.value
   if (!d?.weeks?.length) return {}
@@ -146,33 +144,34 @@ const trendOption = computed(() => {
       axisTick: { show: false },
     },
     series: [
-      { name: 'Gross GMV',          type: 'line', data: d.gmv, smooth: true, symbol: 'none', lineStyle: { color: '#D4916E', width: 1.5 }, itemStyle: { color: '#D4916E' } },
-      { name: 'Net Settlement',     type: 'line', data: d.net, smooth: true, symbol: 'none', lineStyle: { color: '#C15F3C', width: 2 },   itemStyle: { color: '#C15F3C' } },
-      { name: 'Contribution Margin', type: 'line', data: d.cm, smooth: true, symbol: 'none', lineStyle: { color: '#4A8FA3', width: 2 },   itemStyle: { color: '#4A8FA3' }, areaStyle: { color: 'rgba(74,143,163,0.10)' } },
+      { name: t('kpi.grossGmv'),                type: 'line', data: d.gmv, smooth: true, symbol: 'none', lineStyle: { color: '#D4916E', width: 1.5 }, itemStyle: { color: '#D4916E' } },
+      { name: t('kpi.netSettlement'),           type: 'line', data: d.net, smooth: true, symbol: 'none', lineStyle: { color: '#C15F3C', width: 2 },   itemStyle: { color: '#C15F3C' } },
+      { name: t('kpi.contributionMarginShort'), type: 'line', data: d.cm,  smooth: true, symbol: 'none', lineStyle: { color: '#4A8FA3', width: 2 },   itemStyle: { color: '#4A8FA3' }, areaStyle: { color: 'rgba(74,143,163,0.10)' } },
     ],
   }
 })
 
-// ── Chart: fee waterfall ──────────────────────────────────────────────────
 const waterfallOption = computed(() => {
   const d = wfData.value
   if (!d || !d.gross_gmv) return {}
 
   const items = [
-    { name: 'Gross GMV',      value: d.gross_gmv,                                                      type: 'total' },
-    { name: 'Discounts',      value: d.seller_funded_discounts,                                          type: 'decrease' },
-    { name: 'Platform fees',  value: (d.platform_commission || 0) + (d.service_fees || 0) + (d.transaction_fees || 0), type: 'decrease' },
-    { name: 'Affiliate',      value: d.affiliate_commission,                                             type: 'decrease' },
-    { name: 'Shipping',       value: d.shipping_cost_seller,                                             type: 'decrease' },
-    { name: 'Refunds',        value: d.refund_amount,                                                    type: 'decrease' },
-    { name: 'Net Settlement', value: d.net_settlement,                                                   type: 'total' },
-    { name: 'COGS',           value: (d.cogs || 0) + (d.packaging || 0),                                 type: 'decrease' },
-    { name: 'Ads',            value: d.ads_attributed,                                                   type: 'decrease' },
-    { name: 'Margin',         value: d.contribution_margin,                                              type: 'total' },
+    { name: t('overview.waterfallNodes.grossGmv'),      value: d.gross_gmv,                                                      type: 'total' },
+    { name: t('overview.waterfallNodes.discounts'),     value: d.seller_funded_discounts,                                          type: 'decrease' },
+    { name: t('overview.waterfallNodes.platformFees'),  value: (d.platform_commission || 0) + (d.service_fees || 0) + (d.transaction_fees || 0), type: 'decrease' },
+    { name: t('overview.waterfallNodes.affiliate'),     value: d.affiliate_commission,                                             type: 'decrease' },
+    { name: t('overview.waterfallNodes.shipping'),      value: d.shipping_cost_seller,                                             type: 'decrease' },
+    { name: t('overview.waterfallNodes.refunds'),       value: d.refund_amount,                                                    type: 'decrease' },
+    { name: t('overview.waterfallNodes.netSettlement'), value: d.net_settlement,                                                   type: 'total' },
+    { name: t('overview.waterfallNodes.cogs'),          value: (d.cogs || 0) + (d.packaging || 0),                                 type: 'decrease' },
+    { name: t('overview.waterfallNodes.ads'),           value: d.ads_attributed,                                                   type: 'decrease' },
+    { name: t('overview.waterfallNodes.margin'),        value: d.contribution_margin,                                              type: 'total' },
   ]
 
   const TOTAL_COLORS: Record<string, string> = {
-    'Gross GMV': '#C15F3C', 'Net Settlement': '#8B7355', 'Margin': '#4A8FA3',
+    [t('overview.waterfallNodes.grossGmv')]:      '#C15F3C',
+    [t('overview.waterfallNodes.netSettlement')]: '#8B7355',
+    [t('overview.waterfallNodes.margin')]:        '#4A8FA3',
   }
 
   let running = 0
@@ -230,7 +229,6 @@ const waterfallOption = computed(() => {
   }
 })
 
-// ── Chart: channel breakdown (stacked bar) ────────────────────────────────
 const CHANNEL_COLORS: Record<string, string> = {
   tiktok_shop: '#C15F3C',
   shopee:      '#4A8FA3',
@@ -253,7 +251,7 @@ const breakdownOption = computed(() => {
         const total = params.reduce((s: number, p: any) => s + (Number(p.value) || 0), 0)
         const rows = params.filter(p => p.value > 0).map(p =>
           `${p.marker} ${p.seriesName}: <b>${formatIDRCompact(p.value)}</b>`)
-        return `<span style="color:#9C8A77;font-size:11px">${label}</span><br>${rows.join('<br>')}<br>Total: <b>${formatIDRCompact(total)}</b>`
+        return `<span style="color:#9C8A77;font-size:11px">${label}</span><br>${rows.join('<br>')}<br>${t('overview.tooltipTotal')}: <b>${formatIDRCompact(total)}</b>`
       },
     },
     legend: {
@@ -287,7 +285,6 @@ const breakdownOption = computed(() => {
   }
 })
 
-// ── Recommendations ────────────────────────────────────────────────────────
 const { data: recommendationsData } = useFetch<{
   recommendations: Array<{
     id: string
@@ -303,7 +300,6 @@ const { data: recommendationsData } = useFetch<{
 
 <template>
   <div class="space-y-8">
-    <!-- Date range filter -->
     <DateRangeFilter
       :from="from"
       :to="to"
@@ -311,21 +307,23 @@ const { data: recommendationsData } = useFetch<{
       @update:to="to = $event"
     />
 
-    <!-- Freshness badge -->
     <div v-if="data?.last_import" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
       <span>
-        Last import: <span class="text-cream-700">{{ data.last_import.file_type_id }}</span>
-        ({{ data.last_import.channel_id }}) · {{ formatDate(data.last_import.imported_at) }}
-        · coverage {{ data.last_import.period_start || '?' }} → {{ data.last_import.period_end || '?' }}
+        {{ $t('overview.lastImport', {
+          fileType: data.last_import.file_type_id,
+          channel: data.last_import.channel_id,
+          date: formatDate(data.last_import.imported_at),
+          start: data.last_import.period_start || '?',
+          end: data.last_import.period_end || '?',
+        }) }}
       </span>
     </div>
     <div v-else-if="!pending && !error" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
-      <span>No imports yet. Visit <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">Upload</NuxtLink> to add data.</span>
+      <span>{{ $t('overview.noImportsYet') }} <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('overview.noImportsLink') }}</NuxtLink> {{ $t('overview.noImportsTrailing') }}</span>
     </div>
 
-    <!-- Empty-state diagnostic -->
     <div
       v-if="emptyState"
       class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
@@ -340,7 +338,7 @@ const { data: recommendationsData } = useFetch<{
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
             @click="snapToAvailable"
           >
-            Snap range to available data
+            {{ $t('overview.snapToAvailable') }}
           </button>
         </div>
         <div v-else class="mt-3 flex flex-wrap gap-2">
@@ -348,13 +346,12 @@ const { data: recommendationsData } = useFetch<{
             to="/upload"
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
           >
-            Go to Upload
+            {{ $t('overview.goToUpload') }}
           </NuxtLink>
         </div>
       </div>
     </div>
 
-    <!-- KPI cards -->
     <div v-if="pending" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
       <div v-for="i in 5" :key="i" class="h-32 bg-white border border-cream-200 rounded-lg animate-pulse" />
     </div>
@@ -363,14 +360,13 @@ const { data: recommendationsData } = useFetch<{
       <KpiCard v-for="card in cards" :key="card.label" v-bind="card" />
     </div>
 
-    <!-- Recommendations -->
     <section v-if="recommendationsData?.recommendations?.length" class="bg-gradient-to-br from-cream-50 to-cream-50/50 border border-cream-200 rounded-lg p-6 shadow-card">
       <div class="mb-4">
         <div class="flex items-center gap-2 mb-1">
           <Icon name="lucide:lightbulb" class="size-4 text-clay-500" />
-          <h2 class="display text-base">Insights & recommendations</h2>
+          <h2 class="display text-base">{{ $t('overview.insightsTitle') }}</h2>
         </div>
-        <p class="text-xs text-cream-500">Based on the selected date range</p>
+        <p class="text-xs text-cream-500">{{ $t('overview.insightsSubtitle') }}</p>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         <RecommendationCard
@@ -381,25 +377,23 @@ const { data: recommendationsData } = useFetch<{
       </div>
     </section>
 
-    <!-- Trend + Waterfall side by side -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h2 class="display text-base mb-0.5">GMV vs Net Settlement vs Margin</h2>
-        <p class="text-xs text-cream-500 mb-4">Weekly buckets within selected range</p>
+        <h2 class="display text-base mb-0.5">{{ $t('overview.trendTitle') }}</h2>
+        <p class="text-xs text-cream-500 mb-4">{{ $t('overview.trendSubtitle') }}</p>
         <AppChart :option="trendOption" height="220px" />
       </section>
 
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h2 class="display text-base mb-0.5">Fee waterfall</h2>
-        <p class="text-xs text-cream-500 mb-4">Summed across selected range, all channels</p>
+        <h2 class="display text-base mb-0.5">{{ $t('overview.waterfallTitle') }}</h2>
+        <p class="text-xs text-cream-500 mb-4">{{ $t('overview.waterfallSubtitle') }}</p>
         <AppChart :option="waterfallOption" height="220px" />
       </section>
     </div>
 
-    <!-- Channel breakdown full-width -->
     <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h2 class="display text-base mb-0.5">Channel breakdown</h2>
-      <p class="text-xs text-cream-500 mb-4">Contribution margin per channel per month within range</p>
+      <h2 class="display text-base mb-0.5">{{ $t('overview.breakdownTitle') }}</h2>
+      <p class="text-xs text-cream-500 mb-4">{{ $t('overview.breakdownSubtitle') }}</p>
       <AppChart :option="breakdownOption" height="200px" />
     </section>
   </div>

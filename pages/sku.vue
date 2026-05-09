@@ -1,5 +1,6 @@
 <script setup lang="ts">
-definePageMeta({ title: 'SKU performance' })
+definePageMeta({ titleKey: 'nav.skus' })
+const { t } = useI18n()
 const { formatIDRCompact, formatPercent, formatNumber } = useFormat()
 const { from, to, queryString } = useDateRange()
 
@@ -38,14 +39,14 @@ const emptyState = computed(() => {
   if (!fs || fs.total_rows === 0) {
     return {
       kind: 'no-fact-data' as const,
-      title: 'No fact data yet',
-      message: 'Per-SKU profitability comes from settled orders. Upload a TikTok Shop settlement file to populate this page.',
+      title: t('overview.emptyNoFactTitle'),
+      message: t('skuPage.noFactMsg'),
     }
   }
   return {
     kind: 'empty-range' as const,
-    title: 'No data in this range',
-    message: `Available data: ${fs.min_date} → ${fs.max_date}.`,
+    title: t('overview.emptyRangeTitle'),
+    message: t('overview.emptyRangeMsg', { from: fs.min_date, to: fs.max_date }),
   }
 })
 
@@ -56,7 +57,6 @@ function cmTone(pct: number | null): string {
   return 'text-clay-800'
 }
 
-// ── Top-10 SKUs chart ─────────────────────────────────────────────────────
 const TIP = {
   backgroundColor: '#FFFEF8',
   borderColor:     '#E8E2D9',
@@ -89,8 +89,8 @@ const skuChartOption = computed(() => {
         return [
           `<b>${row.sku}</b>`,
           row.product_name ? `<span style="color:#9C8A77">${row.product_name}</span>` : '',
-          `CM: <b>${formatIDRCompact(p.value)}</b>`,
-          row.cm_pct != null ? `CM%: <b>${formatPercent(row.cm_pct)}</b>` : '',
+          `${t('kpi.contributionMarginShort')}: <b>${formatIDRCompact(p.value)}</b>`,
+          row.cm_pct != null ? `${t('skuPage.columns.cmPct')}: <b>${formatPercent(row.cm_pct)}</b>` : '',
         ].filter(Boolean).join('<br>')
       },
     },
@@ -138,10 +138,10 @@ const skuChartOption = computed(() => {
 <template>
   <div class="space-y-6">
     <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-      Per-SKU per-channel profitability, ranked by absolute contribution margin.
-      <span class="text-clay-600">Strong (≥25%)</span> ·
-      <span class="text-cream-700">Healthy (10–25%)</span> ·
-      <span class="text-clay-800">At risk (&lt;10%)</span>.
+      {{ $t('skuPage.intro') }}
+      <span class="text-clay-600">{{ $t('skuPage.strong') }}</span> ·
+      <span class="text-cream-700">{{ $t('skuPage.healthy') }}</span> ·
+      <span class="text-clay-800">{{ $t('skuPage.atRisk') }}</span>.
     </p>
 
     <DateRangeFilter
@@ -151,7 +151,6 @@ const skuChartOption = computed(() => {
       @update:to="to = $event"
     />
 
-    <!-- Empty-state diagnostic -->
     <div
       v-if="emptyState"
       class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
@@ -166,7 +165,7 @@ const skuChartOption = computed(() => {
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
             @click="snapToAvailable"
           >
-            Snap range to available data
+            {{ $t('overview.snapToAvailable') }}
           </button>
         </div>
         <div v-else class="mt-3 flex flex-wrap gap-2">
@@ -174,38 +173,36 @@ const skuChartOption = computed(() => {
             to="/upload"
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
           >
-            Go to Upload
+            {{ $t('overview.goToUpload') }}
           </NuxtLink>
         </div>
       </div>
     </div>
 
-    <!-- Top-10 bar chart -->
     <section v-if="!pending && top10.length" class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h2 class="display text-base mb-0.5">Top 10 SKUs by contribution margin</h2>
-      <p class="text-xs text-cream-500 mb-4">Bars show absolute CM · label is CM%</p>
+      <h2 class="display text-base mb-0.5">{{ $t('skuPage.top10Title') }}</h2>
+      <p class="text-xs text-cream-500 mb-4">{{ $t('skuPage.top10Subtitle') }}</p>
       <AppChart :option="skuChartOption" height="280px" />
     </section>
 
-    <!-- Detailed table -->
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
-      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
+      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!data?.rows?.length" class="p-12 text-center text-sm text-cream-500">
-        No fact_orders data yet. Once you import a TikTok Shop settlement file with mapped SKUs, this will populate.
+        {{ $t('skuPage.noRowsMsg') }}
       </div>
       <table v-else class="w-full text-sm">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
-            <th class="px-5 py-3 text-left font-medium">Channel</th>
-            <th class="px-5 py-3 text-left font-medium">SKU</th>
-            <th class="px-5 py-3 text-left font-medium">Product</th>
-            <th class="px-5 py-3 text-right font-medium">Units</th>
-            <th class="px-5 py-3 text-right font-medium">Gross</th>
-            <th class="px-5 py-3 text-right font-medium">Net</th>
-            <th class="px-5 py-3 text-right font-medium">COGS</th>
-            <th class="px-5 py-3 text-right font-medium">CM</th>
-            <th class="px-5 py-3 text-right font-medium">CM%</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('skuPage.columns.channel') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('skuPage.columns.sku') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('skuPage.columns.product') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.units') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.gross') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.net') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.cogs') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.cm') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('skuPage.columns.cmPct') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">

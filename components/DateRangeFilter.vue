@@ -8,6 +8,8 @@ const emit = defineEmits<{
   'update:to':   [value: string]
 }>()
 
+const { t } = useI18n()
+
 const today = () => new Date()
 const fmt = (d: Date) => d.toISOString().slice(0, 10)
 const dayOffset = (offset: number) => {
@@ -31,17 +33,17 @@ const endOfMonth = (offset = 0) => {
 
 interface Preset {
   key: string
-  label: string
+  labelKey: string
   from: () => string
   to: () => string
 }
 const PRESETS: Preset[] = [
-  { key: '7d',         label: 'Last 7d',     from: () => dayOffset(7),  to: () => dayOffset(0) },
-  { key: '30d',        label: 'Last 30d',    from: () => dayOffset(30), to: () => dayOffset(0) },
-  { key: '90d',        label: 'Last 90d',    from: () => dayOffset(90), to: () => dayOffset(0) },
-  { key: 'this_month', label: 'This month',  from: () => startOfMonth(0), to: () => dayOffset(0) },
-  { key: 'last_month', label: 'Last month',  from: () => startOfMonth(1), to: () => endOfMonth(1) },
-  { key: 'all',        label: 'All time',    from: () => '2020-01-01',   to: () => dayOffset(0) },
+  { key: '7d',         labelKey: 'dateRange.presets.last7d',     from: () => dayOffset(7),  to: () => dayOffset(0) },
+  { key: '30d',        labelKey: 'dateRange.presets.last30d',    from: () => dayOffset(30), to: () => dayOffset(0) },
+  { key: '90d',        labelKey: 'dateRange.presets.last90d',    from: () => dayOffset(90), to: () => dayOffset(0) },
+  { key: 'this_month', labelKey: 'dateRange.presets.thisMonth',  from: () => startOfMonth(0), to: () => dayOffset(0) },
+  { key: 'last_month', labelKey: 'dateRange.presets.lastMonth',  from: () => startOfMonth(1), to: () => endOfMonth(1) },
+  { key: 'all',        labelKey: 'dateRange.presets.allTime',    from: () => '2020-01-01',   to: () => dayOffset(0) },
 ]
 
 const activePreset = computed(() => {
@@ -65,7 +67,7 @@ function onToInput(e: Event) {
   <div class="bg-white border border-cream-200 rounded-lg px-4 py-3 shadow-card flex flex-wrap items-center gap-x-4 gap-y-2">
     <div class="flex items-center gap-1.5 text-cream-500">
       <Icon name="lucide:calendar" class="size-4" />
-      <span class="text-xs uppercase tracking-wider font-medium">Date range</span>
+      <span class="text-xs uppercase tracking-wider font-medium">{{ $t('dateRange.label') }}</span>
     </div>
 
     <div class="flex items-center gap-2">
@@ -76,7 +78,7 @@ function onToInput(e: Event) {
         class="border border-cream-200 rounded-md px-2.5 py-1 text-sm text-cream-700 bg-white focus:outline-none focus:border-clay-500"
         @input="onFromInput"
       />
-      <span class="text-xs text-cream-400">to</span>
+      <span class="text-xs text-cream-400">{{ $t('dateRange.to') }}</span>
       <input
         type="date"
         :value="to"
@@ -97,7 +99,7 @@ function onToInput(e: Event) {
           : 'bg-white text-cream-600 border-cream-200 hover:bg-cream-50 hover:text-cream-800'"
         @click="applyPreset(p)"
       >
-        {{ p.label }}
+        {{ t(p.labelKey) }}
       </button>
     </div>
   </div>

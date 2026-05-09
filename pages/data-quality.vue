@@ -1,5 +1,6 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Data Quality' })
+definePageMeta({ titleKey: 'nav.dataQuality' })
+const { t } = useI18n()
 const { formatIDRCompact, formatNumber } = useFormat()
 
 interface DqResponse {
@@ -17,35 +18,35 @@ const summary = computed(() => {
   return [
     {
       key: 'unmapped',
-      label: 'Unmapped SKUs',
+      label: t('dataQuality.summary.unmappedLabel'),
       icon: 'lucide:link-2-off',
       count: data.value.unmapped_skus.length,
       tone: data.value.unmapped_skus.length > 0 ? 'warn' : 'ok',
-      desc: 'External SKUs in imports without an internal SKU mapping',
+      desc: t('dataQuality.summary.unmappedDesc'),
     },
     {
       key: 'missing_cogs',
-      label: 'Missing COGS',
+      label: t('dataQuality.summary.missingCogsLabel'),
       icon: 'lucide:dollar-sign',
       count: data.value.missing_cogs.length,
       tone: data.value.missing_cogs.length > 0 ? 'warn' : 'ok',
-      desc: 'Mapped SKUs that lack a cost record — margins are unreliable',
+      desc: t('dataQuality.summary.missingCogsDesc'),
     },
     {
       key: 'unsettled',
-      label: 'Unsettled orders',
+      label: t('dataQuality.summary.unsettledLabel'),
       icon: 'lucide:clock',
       count: data.value.unsettled_orders.length,
       tone: 'neutral',
-      desc: 'Orders without a matching settlement row yet',
+      desc: t('dataQuality.summary.unsettledDesc'),
     },
     {
       key: 'undefined_bundles',
-      label: 'Undefined bundles',
+      label: t('dataQuality.summary.undefinedBundlesLabel'),
       icon: 'lucide:boxes',
       count: data.value.undefined_bundles.length,
       tone: data.value.undefined_bundles.length > 0 ? 'warn' : 'ok',
-      desc: 'Multi-SKU strings used in mappings that aren\'t defined as bundles',
+      desc: t('dataQuality.summary.undefinedBundlesDesc'),
     },
   ]
 })
@@ -54,9 +55,11 @@ const summary = computed(() => {
 <template>
   <div class="space-y-8">
     <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-      What the dashboard <em class="not-italic text-cream-700">can't</em> tell you yet.
-      Every number on the Overview page assumes these warnings are at zero — anything below
-      is a known gap.
+      <i18n-t keypath="dataQuality.intro" tag="span">
+        <template #emph>
+          <em class="not-italic text-cream-700">{{ $t('dataQuality.introEmph') }}</em>
+        </template>
+      </i18n-t>
     </p>
 
     <div v-if="pending" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -92,20 +95,19 @@ const summary = computed(() => {
       </div>
     </div>
 
-    <!-- Detail tables -->
     <section v-if="data?.unmapped_skus?.length" class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
       <div class="px-6 py-4 border-b border-cream-200 flex items-center justify-between">
-        <h3 class="display text-base">Unmapped SKUs</h3>
-        <NuxtLink to="/sku-mapping" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">Resolve in SKU mapping →</NuxtLink>
+        <h3 class="display text-base">{{ $t('dataQuality.unmappedTitle') }}</h3>
+        <NuxtLink to="/sku-mapping" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('dataQuality.unmappedResolveLink') }}</NuxtLink>
       </div>
       <table class="w-full text-sm">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60">
           <tr>
-            <th class="px-5 py-2.5 text-left font-medium">Channel</th>
-            <th class="px-5 py-2.5 text-left font-medium">External SKU</th>
-            <th class="px-5 py-2.5 text-right font-medium">Lines</th>
-            <th class="px-5 py-2.5 text-right font-medium">Impacted GMV</th>
-            <th class="px-5 py-2.5 text-left font-medium">Last seen</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.channel') }}</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.externalSku') }}</th>
+            <th class="px-5 py-2.5 text-right font-medium">{{ $t('dataQuality.columns.lines') }}</th>
+            <th class="px-5 py-2.5 text-right font-medium">{{ $t('dataQuality.columns.impactedGmv') }}</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.lastSeen') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">
@@ -122,17 +124,17 @@ const summary = computed(() => {
 
     <section v-if="data?.missing_cogs?.length" class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
       <div class="px-6 py-4 border-b border-cream-200 flex items-center justify-between">
-        <h3 class="display text-base">Missing COGS</h3>
-        <NuxtLink to="/products" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">Set COGS in Products →</NuxtLink>
+        <h3 class="display text-base">{{ $t('dataQuality.missingCogsTitle') }}</h3>
+        <NuxtLink to="/products" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('dataQuality.missingCogsLink') }}</NuxtLink>
       </div>
       <table class="w-full text-sm">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60">
           <tr>
-            <th class="px-5 py-2.5 text-left font-medium">Channel</th>
-            <th class="px-5 py-2.5 text-left font-medium">SKU</th>
-            <th class="px-5 py-2.5 text-left font-medium">Product</th>
-            <th class="px-5 py-2.5 text-right font-medium">Lines</th>
-            <th class="px-5 py-2.5 text-right font-medium">Impacted GMV</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.channel') }}</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.sku') }}</th>
+            <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.product') }}</th>
+            <th class="px-5 py-2.5 text-right font-medium">{{ $t('dataQuality.columns.lines') }}</th>
+            <th class="px-5 py-2.5 text-right font-medium">{{ $t('dataQuality.columns.impactedGmv') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">

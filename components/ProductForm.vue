@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   isOpen: boolean
   isEditing?: boolean
   initialData?: Partial<{
@@ -20,6 +20,8 @@ const emit = defineEmits<{
   saved: [data: any]
   deleted: [sku: string]
 }>()
+
+const { t } = useI18n()
 
 const formData = ref<any>({
   sku: '',
@@ -65,7 +67,7 @@ watch(
 async function submit() {
   error.value = null
   if (!formData.value.sku || !formData.value.product_name) {
-    error.value = 'SKU and product name are required.'
+    error.value = t('forms.product.errSkuAndNameRequired')
     return
   }
 
@@ -84,14 +86,14 @@ async function submit() {
     emit('saved', data)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Save failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.saveFailed')
   } finally {
     loading.value = false
   }
 }
 
 async function remove() {
-  if (!window.confirm(`Delete product "${formData.value.product_name}" (${formData.value.sku})?`)) return
+  if (!window.confirm(t('products.deleteConfirm', { name: formData.value.product_name, sku: formData.value.sku }))) return
 
   deleting.value = true
   try {
@@ -101,7 +103,7 @@ async function remove() {
     emit('deleted', formData.value.sku)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Delete failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.deleteFailed')
   } finally {
     deleting.value = false
   }
@@ -115,7 +117,7 @@ async function remove() {
         <Transition name="modal-content">
           <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="sticky top-0 bg-white border-b border-cream-200 px-6 py-4 flex items-center justify-between">
-              <h2 class="display text-lg">{{ isEditing ? 'Edit product' : 'New product' }}</h2>
+              <h2 class="display text-lg">{{ isEditing ? $t('forms.product.editTitle') : $t('forms.product.newTitle') }}</h2>
               <button
                 type="button"
                 class="text-cream-400 hover:text-cream-600"
@@ -127,7 +129,7 @@ async function remove() {
 
             <form class="p-6 space-y-4" @submit.prevent="submit">
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">SKU</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.sku') }}</label>
                 <input
                   v-model="formData.sku"
                   type="text"
@@ -138,7 +140,7 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Product name</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.productName') }}</label>
                 <input
                   v-model="formData.product_name"
                   type="text"
@@ -148,29 +150,29 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Category</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.category') }}</label>
                 <input
                   v-model="formData.category"
                   type="text"
                   class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500"
-                  placeholder="e.g. Skincare"
+                  :placeholder="$t('forms.product.categoryPlaceholder')"
                   :disabled="loading"
                 />
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Unit size</label>
+                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.unitSize') }}</label>
                   <input
                     v-model="formData.unit_size"
                     type="text"
                     class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500"
-                    placeholder="e.g. 100ml"
+                    :placeholder="$t('forms.product.unitSizePlaceholder')"
                     :disabled="loading"
                   />
                 </div>
                 <div>
-                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Weight (g)</label>
+                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.weight') }}</label>
                   <input
                     v-model.number="formData.weight_grams"
                     type="number"
@@ -182,7 +184,7 @@ async function remove() {
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">COGS (Rp)</label>
+                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.cogs') }}</label>
                   <input
                     v-model.number="formData.current_cogs"
                     type="number"
@@ -191,7 +193,7 @@ async function remove() {
                   />
                 </div>
                 <div>
-                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Packaging (Rp)</label>
+                  <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.product.packaging') }}</label>
                   <input
                     v-model.number="formData.current_packaging"
                     type="number"
@@ -209,7 +211,7 @@ async function remove() {
                     class="w-4 h-4 rounded border-cream-200 text-clay-600 focus:ring-clay-500"
                     :disabled="loading"
                   />
-                  <span class="text-sm text-cream-700">This is a bundle</span>
+                  <span class="text-sm text-cream-700">{{ $t('forms.product.isBundle') }}</span>
                 </label>
                 <label class="flex items-center gap-2">
                   <input
@@ -218,7 +220,7 @@ async function remove() {
                     class="w-4 h-4 rounded border-cream-200 text-clay-600 focus:ring-clay-500"
                     :disabled="loading"
                   />
-                  <span class="text-sm text-cream-700">Active</span>
+                  <span class="text-sm text-cream-700">{{ $t('forms.product.isActive') }}</span>
                 </label>
               </div>
 
@@ -232,7 +234,7 @@ async function remove() {
                   :disabled="loading || deleting"
                   @click="remove"
                 >
-                  {{ deleting ? 'Deleting…' : 'Delete' }}
+                  {{ deleting ? $t('common.deleting') : $t('common.delete') }}
                 </button>
                 <div class="flex-1" />
                 <button
@@ -241,14 +243,14 @@ async function remove() {
                   :disabled="loading"
                   @click="emit('close')"
                 >
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   class="px-3 py-2 text-sm bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md font-medium transition"
                   :disabled="loading"
                 >
-                  {{ loading ? 'Saving…' : 'Save' }}
+                  {{ loading ? $t('common.saving') : $t('common.save') }}
                 </button>
               </div>
             </form>

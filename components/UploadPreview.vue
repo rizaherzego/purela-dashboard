@@ -21,6 +21,9 @@ const emit = defineEmits<{
   imported: [result: any]
 }>()
 
+const { t } = useI18n()
+const { formatNumber } = useFormat()
+
 const importing = ref(false)
 const error = ref<string | null>(null)
 
@@ -42,7 +45,7 @@ async function confirmImport() {
     emit('imported', result)
   }
   catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Import failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.importFailed')
   }
   finally {
     importing.value = false
@@ -52,51 +55,52 @@ async function confirmImport() {
 
 <template>
   <div class="bg-white border border-cream-200 rounded-lg p-7 space-y-6 shadow-card max-w-3xl">
-    <!-- Duplicate -->
     <div v-if="payload.duplicate" class="space-y-4">
       <div class="flex items-start gap-3 p-4 bg-clay-50 border border-clay-100 rounded-md">
         <Icon name="lucide:alert-circle" class="size-5 text-clay-600 mt-0.5 shrink-0" />
         <div class="text-sm text-clay-800">
-          <p class="font-medium text-clay-900">This file has already been imported.</p>
+          <p class="font-medium text-clay-900">{{ $t('upload.preview.duplicateTitle') }}</p>
           <p class="mt-1.5 text-clay-700">
-            Existing batch #{{ payload.existing.batch_id }} —
-            {{ payload.existing.row_count }} rows,
-            covering {{ payload.existing.period_start }} – {{ payload.existing.period_end }}.
+            {{ $t('upload.preview.duplicateDetail', {
+              batch: payload.existing.batch_id,
+              rows: formatNumber(payload.existing.row_count),
+              start: payload.existing.period_start,
+              end: payload.existing.period_end,
+            }) }}
           </p>
         </div>
       </div>
       <button class="px-4 py-2 text-sm border border-cream-200 rounded-md hover:bg-cream-100" @click="emit('cancel')">
-        Back
+        {{ $t('common.back') }}
       </button>
     </div>
 
-    <!-- Preview -->
     <div v-else class="space-y-6">
       <div>
-        <h3 class="display text-lg mb-4">Preview</h3>
+        <h3 class="display text-lg mb-4">{{ $t('upload.preview.title') }}</h3>
         <dl class="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-3 text-sm">
-          <dt class="text-cream-500">File</dt>           <dd class="text-cream-800">{{ payload.file_name }}</dd>
-          <dt class="text-cream-500">Type</dt>           <dd class="text-cream-800">{{ payload.file_type?.display_name }}</dd>
-          <dt class="text-cream-500">Rows</dt>           <dd class="text-cream-800">{{ payload.row_count?.toLocaleString() }}</dd>
-          <dt class="text-cream-500">Date range</dt>     <dd class="text-cream-800">{{ payload.period_start || '?' }} → {{ payload.period_end || '?' }}</dd>
+          <dt class="text-cream-500">{{ $t('upload.preview.fileLabel') }}</dt>           <dd class="text-cream-800">{{ payload.file_name }}</dd>
+          <dt class="text-cream-500">{{ $t('upload.preview.typeLabel') }}</dt>           <dd class="text-cream-800">{{ payload.file_type?.display_name }}</dd>
+          <dt class="text-cream-500">{{ $t('upload.preview.rowsLabel') }}</dt>           <dd class="text-cream-800">{{ payload.row_count != null ? formatNumber(payload.row_count) : '—' }}</dd>
+          <dt class="text-cream-500">{{ $t('upload.preview.dateRange') }}</dt>     <dd class="text-cream-800">{{ payload.period_start || '?' }} → {{ payload.period_end || '?' }}</dd>
         </dl>
       </div>
 
       <div v-if="hasMissing" class="p-4 bg-clay-50 border border-clay-100 rounded-md">
-        <p class="text-sm font-medium text-clay-900 mb-2">Missing required columns</p>
+        <p class="text-sm font-medium text-clay-900 mb-2">{{ $t('upload.preview.missingColumnsTitle') }}</p>
         <ul class="text-xs text-clay-800 space-y-1">
           <li v-for="col in payload.missing_columns" :key="col" class="font-mono">{{ col }}</li>
         </ul>
-        <p class="mt-3 text-xs text-clay-700">This usually means the wrong file type was selected. Cancel and try again.</p>
+        <p class="mt-3 text-xs text-clay-700">{{ $t('upload.preview.missingColumnsHelp') }}</p>
       </div>
 
       <div v-if="(payload.extra_columns?.length ?? 0) > 0" class="text-xs text-cream-500">
-        <span class="text-cream-700">Extra columns detected (preserved as raw_data):</span>
+        <span class="text-cream-700">{{ $t('upload.preview.extraColumns') }}</span>
         <span class="ml-1 font-mono">{{ payload.extra_columns?.slice(0, 6).join(', ') }}{{ (payload.extra_columns?.length ?? 0) > 6 ? '…' : '' }}</span>
       </div>
 
       <div v-if="payload.sample_rows?.length">
-        <h3 class="text-xs uppercase tracking-wider text-cream-500 font-medium mb-3">First {{ payload.sample_rows.length }} rows</h3>
+        <h3 class="text-xs uppercase tracking-wider text-cream-500 font-medium mb-3">{{ $t('upload.preview.firstNRows', { n: payload.sample_rows.length }) }}</h3>
         <div class="overflow-x-auto border border-cream-200 rounded-md">
           <table class="w-full text-xs">
             <thead class="bg-cream-100 text-cream-600">
@@ -123,14 +127,14 @@ async function confirmImport() {
           :disabled="importing || hasMissing"
           @click="confirmImport"
         >
-          {{ importing ? 'Importing…' : 'Confirm import' }}
+          {{ importing ? $t('upload.preview.importing') : $t('upload.preview.confirmImport') }}
         </button>
         <button
           class="px-4 py-2 text-sm text-cream-600 hover:text-cream-900 hover:bg-cream-100 rounded-md transition"
           :disabled="importing"
           @click="emit('cancel')"
         >
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
       </div>
     </div>

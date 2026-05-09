@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   isOpen: boolean
   isEditing?: boolean
   initialData?: {
@@ -18,6 +18,7 @@ const emit = defineEmits<{
   deleted: [id: number]
 }>()
 
+const { t } = useI18n()
 const { data: channels } = await useFetch<{ channels: any[] }>('/api/channels')
 
 const formData = ref<any>({
@@ -59,7 +60,7 @@ watch(
 async function submit() {
   error.value = null
   if (!formData.value.channel_id || !formData.value.external_sku || !formData.value.internal_sku) {
-    error.value = 'Channel, external SKU, and internal SKU are required.'
+    error.value = t('forms.skuMapping.errAllRequired')
     return
   }
 
@@ -81,14 +82,14 @@ async function submit() {
     emit('saved', data)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Save failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.saveFailed')
   } finally {
     loading.value = false
   }
 }
 
 async function remove() {
-  if (!window.confirm(`Delete mapping for ${formData.value.external_sku}?`)) return
+  if (!window.confirm(t('forms.skuMapping.deleteConfirm', { sku: formData.value.external_sku }))) return
 
   deleting.value = true
   try {
@@ -98,7 +99,7 @@ async function remove() {
     emit('deleted', props.initialData?.id)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Delete failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.deleteFailed')
   } finally {
     deleting.value = false
   }
@@ -112,7 +113,7 @@ async function remove() {
         <Transition name="modal-content">
           <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="sticky top-0 bg-white border-b border-cream-200 px-6 py-4 flex items-center justify-between">
-              <h2 class="display text-lg">{{ isEditing ? 'Edit mapping' : 'New mapping' }}</h2>
+              <h2 class="display text-lg">{{ isEditing ? $t('forms.skuMapping.editTitle') : $t('forms.skuMapping.newTitle') }}</h2>
               <button
                 type="button"
                 class="text-cream-400 hover:text-cream-600"
@@ -124,13 +125,13 @@ async function remove() {
 
             <form class="p-6 space-y-4" @submit.prevent="submit">
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Channel</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.skuMapping.channel') }}</label>
                 <select
                   v-model="formData.channel_id"
                   class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500"
                   :disabled="isEditing || loading"
                 >
-                  <option value="">— Select channel —</option>
+                  <option value="">{{ $t('forms.skuMapping.channelSelect') }}</option>
                   <option v-for="ch in channels?.channels" :key="ch.channel_id" :value="ch.channel_id">
                     {{ ch.channel_name }}
                   </option>
@@ -138,7 +139,7 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">External SKU</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.skuMapping.externalSku') }}</label>
                 <input
                   v-model="formData.external_sku"
                   type="text"
@@ -149,24 +150,24 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Internal SKU</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.skuMapping.internalSku') }}</label>
                 <input
                   v-model="formData.internal_sku"
                   type="text"
                   class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500"
-                  placeholder="e.g. SKU-001"
+                  :placeholder="$t('forms.skuMapping.internalSkuPlaceholder')"
                   :disabled="loading"
                   uppercase
                 />
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Override COGS (optional)</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.skuMapping.overrideCogs') }}</label>
                 <input
                   v-model.number="formData.override_cogs"
                   type="number"
                   class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500"
-                  placeholder="Leave blank to use product COGS"
+                  :placeholder="$t('forms.skuMapping.overrideCogsPlaceholder')"
                   :disabled="loading"
                 />
               </div>
@@ -181,7 +182,7 @@ async function remove() {
                   :disabled="loading || deleting"
                   @click="remove"
                 >
-                  {{ deleting ? 'Deleting…' : 'Delete' }}
+                  {{ deleting ? $t('common.deleting') : $t('common.delete') }}
                 </button>
                 <div class="flex-1" />
                 <button
@@ -190,14 +191,14 @@ async function remove() {
                   :disabled="loading"
                   @click="emit('close')"
                 >
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   class="px-3 py-2 text-sm bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md font-medium transition"
                   :disabled="loading"
                 >
-                  {{ loading ? 'Saving…' : 'Save' }}
+                  {{ loading ? $t('common.saving') : $t('common.save') }}
                 </button>
               </div>
             </form>

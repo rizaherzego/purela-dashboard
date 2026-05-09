@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   isOpen: boolean
   isEditing?: boolean
   initialData?: {
@@ -15,6 +15,8 @@ const emit = defineEmits<{
   saved: [data: any]
   deleted: [sku: string]
 }>()
+
+const { t } = useI18n()
 
 const formData = ref<any>({
   bundle_sku: '',
@@ -54,13 +56,13 @@ watch(
 
 function addComponent() {
   if (!newComponentSku.value.trim()) {
-    error.value = 'Component SKU is required.'
+    error.value = t('forms.bundle.errComponentSkuRequired')
     return
   }
 
   const sku = newComponentSku.value.trim().toUpperCase()
   if (formData.value.components.some((c: any) => c.component_sku === sku)) {
-    error.value = `${sku} is already added.`
+    error.value = t('forms.bundle.errAlreadyAdded', { sku })
     return
   }
 
@@ -80,12 +82,12 @@ function removeComponent(idx: number) {
 async function submit() {
   error.value = null
   if (!formData.value.bundle_sku || !formData.value.bundle_name) {
-    error.value = 'Bundle SKU and name are required.'
+    error.value = t('forms.bundle.errSkuAndNameRequired')
     return
   }
 
   if (formData.value.components.length === 0) {
-    error.value = 'At least one component is required.'
+    error.value = t('forms.bundle.errAtLeastOneComponent')
     return
   }
 
@@ -104,14 +106,14 @@ async function submit() {
     emit('saved', data)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Save failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.saveFailed')
   } finally {
     loading.value = false
   }
 }
 
 async function remove() {
-  if (!window.confirm(`Delete bundle "${formData.value.bundle_name}" (${formData.value.bundle_sku})?`)) return
+  if (!window.confirm(t('bundles.deleteConfirm', { name: formData.value.bundle_name, sku: formData.value.bundle_sku }))) return
 
   deleting.value = true
   try {
@@ -121,7 +123,7 @@ async function remove() {
     emit('deleted', formData.value.bundle_sku)
     emit('close')
   } catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Delete failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.deleteFailed')
   } finally {
     deleting.value = false
   }
@@ -135,7 +137,7 @@ async function remove() {
         <Transition name="modal-content">
           <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="sticky top-0 bg-white border-b border-cream-200 px-6 py-4 flex items-center justify-between">
-              <h2 class="display text-lg">{{ isEditing ? 'Edit bundle' : 'New bundle' }}</h2>
+              <h2 class="display text-lg">{{ isEditing ? $t('forms.bundle.editTitle') : $t('forms.bundle.newTitle') }}</h2>
               <button
                 type="button"
                 class="text-cream-400 hover:text-cream-600"
@@ -147,7 +149,7 @@ async function remove() {
 
             <form class="p-6 space-y-4" @submit.prevent="submit">
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Bundle SKU</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.bundle.bundleSku') }}</label>
                 <input
                   v-model="formData.bundle_sku"
                   type="text"
@@ -158,7 +160,7 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Bundle name</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.bundle.bundleName') }}</label>
                 <input
                   v-model="formData.bundle_name"
                   type="text"
@@ -168,7 +170,7 @@ async function remove() {
               </div>
 
               <div>
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">Notes (optional)</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-1.5">{{ $t('forms.bundle.notes') }}</label>
                 <textarea
                   v-model="formData.notes"
                   class="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 resize-none"
@@ -177,9 +179,8 @@ async function remove() {
                 />
               </div>
 
-              <!-- Components -->
               <div class="space-y-2 pt-2">
-                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium">Components</label>
+                <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium">{{ $t('forms.bundle.components') }}</label>
                 <div class="space-y-2 max-h-32 overflow-y-auto">
                   <div
                     v-for="(comp, idx) in formData.components"
@@ -203,7 +204,7 @@ async function remove() {
                   <input
                     v-model="newComponentSku"
                     type="text"
-                    placeholder="Component SKU"
+                    :placeholder="$t('forms.bundle.componentSkuPlaceholder')"
                     class="flex-1 px-2 py-1.5 bg-cream-50 border border-cream-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-clay-500"
                     :disabled="loading"
                     uppercase
@@ -212,7 +213,7 @@ async function remove() {
                   <input
                     v-model.number="newComponentQty"
                     type="number"
-                    placeholder="Qty"
+                    :placeholder="$t('forms.bundle.qty')"
                     min="1"
                     class="w-12 px-2 py-1.5 bg-cream-50 border border-cream-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-clay-500"
                     :disabled="loading"
@@ -223,7 +224,7 @@ async function remove() {
                     :disabled="loading"
                     @click="addComponent"
                   >
-                    Add
+                    {{ $t('forms.bundle.addBtn') }}
                   </button>
                 </div>
               </div>
@@ -238,7 +239,7 @@ async function remove() {
                   :disabled="loading || deleting"
                   @click="remove"
                 >
-                  {{ deleting ? 'Deleting…' : 'Delete' }}
+                  {{ deleting ? $t('common.deleting') : $t('common.delete') }}
                 </button>
                 <div class="flex-1" />
                 <button
@@ -247,14 +248,14 @@ async function remove() {
                   :disabled="loading"
                   @click="emit('close')"
                 >
-                  Cancel
+                  {{ $t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   class="px-3 py-2 text-sm bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md font-medium transition"
                   :disabled="loading"
                 >
-                  {{ loading ? 'Saving…' : 'Save' }}
+                  {{ loading ? $t('common.saving') : $t('common.save') }}
                 </button>
               </div>
             </form>

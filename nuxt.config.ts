@@ -5,7 +5,29 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase',
     '@nuxt/icon',
     'nuxt-auth-utils',
+    '@nuxtjs/i18n',
   ],
+
+  i18n: {
+    strategy: 'no_prefix',
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+      { code: 'id', language: 'id-ID', name: 'Bahasa Indonesia', file: 'id.json' },
+    ],
+    langDir: 'locales/',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'purela_lang',
+      cookieSecure: true,
+      redirectOn: 'root',
+      fallbackLocale: 'en',
+      alwaysRedirect: false,
+    },
+    bundle: {
+      optimizeTranslationDirective: false,
+    },
+  },
 
   // Tailwind is compiled by the standalone tailwindcss CLI (npm scripts
   // `build:css` and the watcher inside `dev`) into `public/tailwind.css`,

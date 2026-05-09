@@ -75,6 +75,8 @@ CREATE TABLE products (
     weight_grams    INTEGER,
     is_bundle       BOOLEAN NOT NULL DEFAULT FALSE,  -- TRUE if this SKU is a bundle
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    rsp_price       NUMERIC(15,2),               -- Recommended Selling Price (per Excel "RSP" / bundle "Mark Up")
+    bottom_price    NUMERIC(15,2),               -- Floor price below which sales should be flagged
     notes           TEXT
 );
 

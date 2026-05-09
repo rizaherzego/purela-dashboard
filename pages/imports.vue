@@ -1,7 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Import history' })
+definePageMeta({ titleKey: 'imports.title' })
 
-const { formatDate } = useFormat()
+const { t } = useI18n()
+const { formatDate, formatNumber } = useFormat()
 
 interface Batch {
   batch_id: number
@@ -20,7 +21,7 @@ const { data, pending, refresh, error } = await useFetch<{ batches: Batch[] }>('
 const deleting = ref<number | null>(null)
 
 async function remove(id: number) {
-  const ok = window.confirm(`Delete batch #${id}? Raw rows will be removed and fact_orders will be recomputed for the affected period.`)
+  const ok = window.confirm(t('imports.deleteConfirm', { id }))
   if (!ok) return
   deleting.value = id
   try {
@@ -28,7 +29,7 @@ async function remove(id: number) {
     await refresh()
   }
   catch (e: any) {
-    window.alert(e?.statusMessage || e?.message || 'Delete failed.')
+    window.alert(e?.statusMessage || e?.message || t('errors.deleteFailed'))
   }
   finally {
     deleting.value = null
@@ -38,27 +39,29 @@ async function remove(id: number) {
 
 <template>
   <div class="space-y-6">
-    <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-      Every CSV/XLSX upload creates a batch. Deleting a batch cascades to its raw rows and
-      triggers an ETL rebuild for the affected (channel, date range).
-    </p>
+    <div class="flex items-start justify-between gap-6">
+      <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
+        {{ $t('imports.intro') }}
+      </p>
+      <EtlRebuildButton :label="$t('imports.rerunAll')" />
+    </div>
 
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
-      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
+      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!data?.batches?.length" class="p-12 text-center text-sm text-cream-500">
-        No imports yet. Head to <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">Upload</NuxtLink> to add your first file.
+        {{ $t('imports.noImports') }} <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('imports.noImportsLink') }}</NuxtLink> {{ $t('imports.noImportsTrailing') }}
       </div>
       <table v-else class="w-full text-sm">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
-            <th class="px-5 py-3 text-left font-medium">Batch</th>
-            <th class="px-5 py-3 text-left font-medium">Channel</th>
-            <th class="px-5 py-3 text-left font-medium">File type</th>
-            <th class="px-5 py-3 text-left font-medium">File</th>
-            <th class="px-5 py-3 text-left font-medium">Period</th>
-            <th class="px-5 py-3 text-right font-medium">Rows</th>
-            <th class="px-5 py-3 text-left font-medium">Imported</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.batch') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.channel') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.fileType') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.file') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.period') }}</th>
+            <th class="px-5 py-3 text-right font-medium">{{ $t('imports.columns.rows') }}</th>
+            <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.imported') }}</th>
             <th class="px-5 py-3"></th>
           </tr>
         </thead>
@@ -69,7 +72,7 @@ async function remove(id: number) {
             <td class="px-5 py-3 text-cream-500">{{ b.file_type_id }}</td>
             <td class="px-5 py-3 max-w-xs truncate text-cream-700" :title="b.file_name">{{ b.file_name }}</td>
             <td class="px-5 py-3 text-cream-600">{{ b.period_start || '?' }} → {{ b.period_end || '?' }}</td>
-            <td class="px-5 py-3 text-right text-cream-800">{{ b.row_count?.toLocaleString() ?? '—' }}</td>
+            <td class="px-5 py-3 text-right text-cream-800">{{ b.row_count != null ? formatNumber(b.row_count) : '—' }}</td>
             <td class="px-5 py-3 text-cream-500">{{ formatDate(b.imported_at) }}</td>
             <td class="px-5 py-3 text-right">
               <button
@@ -77,7 +80,7 @@ async function remove(id: number) {
                 :disabled="deleting === b.batch_id"
                 @click="remove(b.batch_id)"
               >
-                {{ deleting === b.batch_id ? 'Deleting…' : 'Delete' }}
+                {{ deleting === b.batch_id ? $t('common.deleting') : $t('common.delete') }}
               </button>
             </td>
           </tr>

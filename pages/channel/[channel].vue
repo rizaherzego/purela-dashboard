@@ -1,13 +1,14 @@
 <script setup lang="ts">
 const route = useRoute()
+const { t, locale } = useI18n()
 const channelParam = computed(() => String(route.params.channel))
 
-const CHANNEL_LABEL: Record<string, string> = {
-  tiktok:    'TikTok Shop',
-  shopee:    'Shopee',
-  tokopedia: 'Tokopedia',
-  website:   'Direct Website',
-}
+const channelLabel = computed<Record<string, string>>(() => ({
+  tiktok:    t('nav.channelLabels.tiktok'),
+  shopee:    t('nav.channelLabels.shopee'),
+  tokopedia: t('nav.channelLabels.tokopedia'),
+  website:   t('nav.channelLabels.directWebsite'),
+}))
 const CHANNEL_ID: Record<string, string> = {
   tiktok:    'tiktok_shop',
   shopee:    'shopee',
@@ -15,14 +16,13 @@ const CHANNEL_ID: Record<string, string> = {
   website:   'website',
 }
 
-definePageMeta({ title: 'Channel deep-dive' })
-useHead(() => ({ title: `${CHANNEL_LABEL[channelParam.value] ?? channelParam.value} — Purela` }))
+definePageMeta({ titleKey: 'channelPage.metaTitle' })
+useHead(() => ({ title: `${channelLabel.value[channelParam.value] ?? channelParam.value} — Purela` }))
 
 const dbChannelId = computed(() => CHANNEL_ID[channelParam.value] ?? channelParam.value)
 const { formatIDRCompact, formatPercent } = useFormat()
 const { from, to, queryString } = useDateRange()
 
-// ── Chart data ────────────────────────────────────────────────────────────
 const { data: trendData } = useFetch<{
   weeks: string[]
   take_rate: (number | null)[]
@@ -63,18 +63,17 @@ const emptyState = computed(() => {
   if (!fs || fs.total_rows === 0) {
     return {
       kind: 'no-fact-data' as const,
-      title: 'No fact data yet',
-      message: 'Channel analytics come from settled orders. Upload a TikTok Shop settlement file to populate this page.',
+      title: t('overview.emptyNoFactTitle'),
+      message: t('channelPage.noFactMsg'),
     }
   }
   return {
     kind: 'empty-range' as const,
-    title: 'No data for this channel in this range',
-    message: `Fact data spans ${fs.min_date} → ${fs.max_date}, but nothing in the selected window for ${dbChannelId.value}.`,
+    title: t('channelPage.noRangeTitle'),
+    message: t('channelPage.noRangeMsg', { from: fs.min_date, to: fs.max_date, channel: dbChannelId.value }),
   }
 })
 
-// ── Chart theme ───────────────────────────────────────────────────────────
 const TIP = {
   backgroundColor: '#FFFEF8',
   borderColor:     '#E8E2D9',
@@ -86,7 +85,6 @@ const AX_LABEL = { color: '#9C8A77', fontSize: 10, fontFamily: 'Inter, sans-seri
 const SPLIT    = { lineStyle: { color: '#F0EDE8', type: 'dashed' as const } }
 const AX_LINE  = { lineStyle: { color: '#E8E2D9' } }
 
-// ── Chart: take-rate trend (line) ─────────────────────────────────────────
 const trendOption = computed(() => {
   const d = trendData.value
   if (!d?.weeks?.length) return {}
@@ -98,7 +96,8 @@ const trendOption = computed(() => {
       trigger: 'axis',
       formatter: (params: any[]) => {
         const p = params[0]
-        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${p.value != null ? p.value + '%' : '—'}</b> effective take rate`
+        const valueText = p.value != null ? p.value + '%' : '—'
+        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${t('channelPage.trendTooltip', { value: valueText })}</b>`
       },
     },
     xAxis: {
@@ -116,7 +115,7 @@ const trendOption = computed(() => {
       axisTick: { show: false },
     },
     series: [{
-      name: 'Take rate',
+      name: t('channelPage.series.takeRate'),
       type: 'line',
       data: d.take_rate,
       smooth: true,
@@ -128,15 +127,14 @@ const trendOption = computed(() => {
       markLine: {
         silent: true,
         symbol: 'none',
-        data: [{ yAxis: 15, name: '~Typical' }],
+        data: [{ yAxis: 15, name: t('channelPage.trendTypicalLabel') }],
         lineStyle: { color: '#9C8A77', type: 'dashed', width: 1 },
-        label: { color: '#9C8A77', fontSize: 10, position: 'insideEndTop', formatter: '~15% typical' },
+        label: { color: '#9C8A77', fontSize: 10, position: 'insideEndTop', formatter: t('channelPage.trendTypicalLabel') },
       },
     }],
   }
 })
 
-// ── Chart: take-rate histogram ────────────────────────────────────────────
 const histOption = computed(() => {
   const d = trendData.value
   if (!d?.hist_labels?.length) return {}
@@ -149,7 +147,7 @@ const histOption = computed(() => {
       axisPointer: { type: 'shadow' },
       formatter: (params: any[]) => {
         const p = params[0]
-        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${p.value}</b> orders`
+        return `<span style="color:#9C8A77;font-size:11px">${p.axisValue}</span><br><b>${t('channelPage.histTooltip', { value: p.value })}</b>`
       },
     },
     xAxis: {
@@ -167,7 +165,7 @@ const histOption = computed(() => {
       axisTick: { show: false },
     },
     series: [{
-      name: 'Orders',
+      name: t('channelPage.series.orders'),
       type: 'bar',
       data: d.hist_counts,
       barMaxWidth: 18,
@@ -176,7 +174,6 @@ const histOption = computed(() => {
   }
 })
 
-// ── Chart: fee composition stacked area ──────────────────────────────────
 const FEE_COLORS: Record<string, string> = {
   seller_discounts:    '#D4916E',
   platform_commission: '#C15F3C',
@@ -214,7 +211,7 @@ const compositionOption = computed(() => {
         const label = params[0].axisValue
         const total = params.reduce((s: number, p: any) => s + (Number(p.value) || 0), 0)
         const rows = params.map(p => `${p.marker} ${p.seriesName}: <b>${p.value}%</b>`)
-        return `<span style="color:#9C8A77;font-size:11px">${label}</span><br>${rows.join('<br>')}<br>Accounted: <b>${total.toFixed(1)}%</b>`
+        return `<span style="color:#9C8A77;font-size:11px">${label}</span><br>${rows.join('<br>')}<br>${t('channelPage.compositionAccounted', { pct: total.toFixed(1) + '%' })}`
       },
     },
     legend: {
@@ -239,13 +236,13 @@ const compositionOption = computed(() => {
       axisTick: { show: false },
     },
     series: [
-      areaSeries('Seller discounts',    d.seller_discounts,    'seller_discounts'),
-      areaSeries('Platform commission', d.platform_commission, 'platform_commission'),
-      areaSeries('Affiliate',           d.affiliate,           'affiliate'),
-      areaSeries('Service fees',        d.service_fees,        'service_fees'),
-      areaSeries('Transaction fees',    d.transaction_fees,    'transaction_fees'),
-      areaSeries('Shipping',            d.shipping,            'shipping'),
-      areaSeries('Refunds',             d.refunds,             'refunds'),
+      areaSeries(t('channelPage.series.sellerDiscounts'),    d.seller_discounts,    'seller_discounts'),
+      areaSeries(t('channelPage.series.platformCommission'), d.platform_commission, 'platform_commission'),
+      areaSeries(t('channelPage.series.affiliate'),          d.affiliate,           'affiliate'),
+      areaSeries(t('channelPage.series.serviceFees'),        d.service_fees,        'service_fees'),
+      areaSeries(t('channelPage.series.transactionFees'),    d.transaction_fees,    'transaction_fees'),
+      areaSeries(t('channelPage.series.shipping'),           d.shipping,            'shipping'),
+      areaSeries(t('channelPage.series.refunds'),            d.refunds,             'refunds'),
     ],
   }
 })
@@ -255,7 +252,7 @@ const compositionOption = computed(() => {
   <div class="space-y-8">
     <div class="flex items-baseline justify-between">
       <h2 class="display text-xl">
-        {{ CHANNEL_LABEL[channelParam] ?? channelParam }}
+        {{ channelLabel[channelParam] ?? channelParam }}
       </h2>
       <span class="text-xs font-mono text-cream-500">{{ dbChannelId }}</span>
     </div>
@@ -267,7 +264,6 @@ const compositionOption = computed(() => {
       @update:to="to = $event"
     />
 
-    <!-- Empty-state diagnostic -->
     <div
       v-if="emptyState"
       class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
@@ -282,7 +278,7 @@ const compositionOption = computed(() => {
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
             @click="snapToAvailable"
           >
-            Snap range to available data
+            {{ $t('overview.snapToAvailable') }}
           </button>
         </div>
         <div v-else class="mt-3 flex flex-wrap gap-2">
@@ -290,41 +286,37 @@ const compositionOption = computed(() => {
             to="/upload"
             class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
           >
-            Go to Upload
+            {{ $t('overview.goToUpload') }}
           </NuxtLink>
         </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <!-- Take-rate trend -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-0.5">Effective take-rate trend</h3>
-        <p class="text-xs text-cream-500 mb-4">Weekly — settled orders only · dashed = rough industry baseline</p>
+        <h3 class="display text-base mb-0.5">{{ $t('channelPage.trendTitle') }}</h3>
+        <p class="text-xs text-cream-500 mb-4">{{ $t('channelPage.trendSubtitle') }}</p>
         <AppChart :option="trendOption" height="220px" />
       </section>
 
-      <!-- Distribution histogram -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-0.5">Take-rate distribution</h3>
-        <p class="text-xs text-cream-500 mb-4">Per-order histogram within selected range</p>
+        <h3 class="display text-base mb-0.5">{{ $t('channelPage.histTitle') }}</h3>
+        <p class="text-xs text-cream-500 mb-4">{{ $t('channelPage.histSubtitle') }}</p>
         <AppChart :option="histOption" height="220px" />
       </section>
 
-      <!-- Fee composition full-width -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card lg:col-span-2">
-        <h3 class="display text-base mb-0.5">Fee composition over time</h3>
-        <p class="text-xs text-cream-500 mb-4">Stacked area — each layer is % of gross GMV per month within range</p>
+        <h3 class="display text-base mb-0.5">{{ $t('channelPage.compositionTitle') }}</h3>
+        <p class="text-xs text-cream-500 mb-4">{{ $t('channelPage.compositionSubtitle') }}</p>
         <AppChart :option="compositionOption" height="260px" />
       </section>
     </div>
 
-    <!-- Drill-down placeholder (next turn) -->
     <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h3 class="display text-base mb-0.5">Drill-down: orders by take rate</h3>
-      <p class="text-xs text-cream-500 mb-4">Sortable. Click an order to see per-line-item economics.</p>
+      <h3 class="display text-base mb-0.5">{{ $t('channelPage.drillTitle') }}</h3>
+      <p class="text-xs text-cream-500 mb-4">{{ $t('channelPage.drillSubtitle') }}</p>
       <div class="h-24 flex items-center justify-center text-xs text-cream-400 bg-cream-50 border border-cream-100 rounded-md">
-        Order drill-down table — next milestone
+        {{ $t('channelPage.drillPlaceholder') }}
       </div>
     </section>
   </div>

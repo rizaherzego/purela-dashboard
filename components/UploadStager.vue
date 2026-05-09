@@ -14,6 +14,7 @@ const emit = defineEmits<{
   staged: [payload: any]
 }>()
 
+const { t } = useI18n()
 const { data, pending: channelsLoading, error: channelsError } = await useFetch<{ channels: Channel[] }>('/api/channels')
 
 const channelId = ref<string>('')
@@ -50,7 +51,7 @@ async function submit() {
     emit('staged', result)
   }
   catch (e: any) {
-    error.value = e?.statusMessage || e?.message || 'Upload failed.'
+    error.value = e?.statusMessage || e?.message || t('errors.uploadFailed')
   }
   finally {
     submitting.value = false
@@ -64,17 +65,17 @@ async function submit() {
     @submit.prevent="submit"
   >
     <p v-if="channelsError" class="text-sm text-clay-700">
-      Failed to load channels. {{ channelsError.message }}
+      {{ $t('errors.channelsLoadFailed') }} {{ channelsError.message }}
     </p>
 
     <div>
-      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">Channel</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">{{ $t('upload.stager.channel') }}</label>
       <select
         v-model="channelId"
         class="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition"
         :disabled="channelsLoading"
       >
-        <option value="" disabled>Select a channel…</option>
+        <option value="" disabled>{{ $t('upload.stager.selectChannel') }}</option>
         <option v-for="c in data?.channels ?? []" :key="c.channel_id" :value="c.channel_id">
           {{ c.channel_name }}
         </option>
@@ -82,13 +83,13 @@ async function submit() {
     </div>
 
     <div>
-      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">File type</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">{{ $t('upload.stager.fileType') }}</label>
       <select
         v-model="fileTypeId"
         class="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition disabled:opacity-50"
         :disabled="!channelId"
       >
-        <option value="" disabled>{{ channelId ? 'Select a file type…' : 'Pick a channel first' }}</option>
+        <option value="" disabled>{{ channelId ? $t('upload.stager.selectFileType') : $t('upload.stager.pickChannelFirst') }}</option>
         <option v-for="ft in fileTypes" :key="ft.file_type_id" :value="ft.file_type_id">
           {{ ft.display_name }}
         </option>
@@ -99,14 +100,14 @@ async function submit() {
     </div>
 
     <div>
-      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">File</label>
+      <label class="block text-xs uppercase tracking-wider text-cream-500 font-medium mb-2">{{ $t('upload.stager.file') }}</label>
       <input
         type="file"
         accept=".csv,.xlsx,.xls"
         class="block w-full text-sm text-cream-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-clay-50 file:text-clay-700 hover:file:bg-clay-100"
         @change="onFile"
       >
-      <p class="mt-2 text-xs text-cream-400">CSV or XLSX, max 50 MB.</p>
+      <p class="mt-2 text-xs text-cream-400">{{ $t('upload.stager.csvOrXlsx') }}</p>
     </div>
 
     <p v-if="error" class="text-sm text-clay-700">{{ error }}</p>
@@ -116,7 +117,7 @@ async function submit() {
       class="px-5 py-2.5 bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md text-sm font-medium transition-colors"
       :disabled="!channelId || !fileTypeId || !file || submitting"
     >
-      {{ submitting ? 'Staging…' : 'Stage upload' }}
+      {{ submitting ? $t('upload.stager.staging') : $t('upload.stager.stage') }}
     </button>
   </form>
 </template>

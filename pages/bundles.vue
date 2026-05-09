@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ title: 'Bundles' })
+definePageMeta({ titleKey: 'bundles.title' })
 
 interface Bundle {
   bundle_sku: string
@@ -41,14 +41,13 @@ async function onDeleted() {
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-        Bundle definitions. When a bundle SKU sells, the ETL explodes it into component
-        SKUs for COGS and stock reconciliation. Click any bundle to edit.
+        {{ $t('bundles.intro') }}
       </p>
       <button
         class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
         @click="openNewForm"
       >
-        + Define bundle
+        {{ $t('bundles.defineBundle') }}
       </button>
     </div>
 
@@ -61,10 +60,10 @@ async function onDeleted() {
       @deleted="onDeleted"
     />
 
-    <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
+    <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
     <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
     <div v-else-if="!data?.bundles?.length" class="bg-white border border-cream-200 rounded-lg p-12 text-center text-sm text-cream-500 shadow-card">
-      No bundles defined yet.
+      {{ $t('bundles.noneYet') }}
     </div>
     <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       <div
