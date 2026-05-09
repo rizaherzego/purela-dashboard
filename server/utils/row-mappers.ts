@@ -219,22 +219,71 @@ export function mapTiktokReturn(r: Row) {
 
 // ----------------------------------------------------------------------------
 // TikTok Shop — Affiliate Orders (csv)
-// Headers are in Bahasa Indonesia for the ID locale.
-//   "Pembayaran Komisi Aktual" = the actual commission paid out (may be empty
-//     for orders that haven't completed the payout cycle yet). Fall back to
-//     "Perkiraan pembayaran komisi standar" (estimated standard payout).
-//   "Persentase komisi standar" comes as "13%" — parse to decimal fraction.
-//   "Waktu Dibuat" = "DD/MM/YYYY HH:MM:SS" in UTC+7 (handled by parseDmyDateTime).
+//
+// TikTok ships TWO distinct shapes under the same "Affiliate Orders" export
+// option, depending on whether the orders involve creators directly or an
+// affiliate partner (a marketing agency / network):
+//
+//   CREATOR shape — has "Nama pengguna kreator", "Persentase komisi standar",
+//     "Pembayaran Komisi Aktual". Commission goes directly to the creator.
+//
+//   PARTNER shape — has "Affiliate Partner Name", "Tarif Komisi (%)" or
+//     "Affiliate Partner Commission Rate", and partner-specific payout columns.
+//     Per TikTok's own note in the file: "When you collaborate directly with
+//     partners, columns [Commission Rate], [Est. Commission Payment], [Actual
+//     Commission Payment] will not have any values. In such cases, please
+//     refer to columns [Affiliate Partner Commission Rate], [Est. Commission
+//     for Affiliate Partner], [Actual Commission for Affiliate Partner]."
+//
+// We auto-detect the shape per row and fall through gracefully. `affiliate_type`
+// records which shape was used so the analytics layer can split.
+//
+// All headers are Bahasa Indonesia for the ID locale; "Waktu Dibuat" is
+// "DD/MM/YYYY HH:MM:SS" in UTC+7 (handled by parseDmyDateTime); rates come
+// in as "13%" — `pct()` parses them to decimal fractions.
 // ----------------------------------------------------------------------------
 export function mapTiktokAffiliate(r: Row) {
   const get = makeGetter(r)
+
+  // Determine which shape this row is. A creator-driven order has a creator
+  // username; a partner-driven order has an Affiliate Partner Name. Some files
+  // mix both (creator-driven orders within a partner-tagged export).
+  const creatorName = txt(get('Nama pengguna kreator'))
+  const partnerName = txt(get('Affiliate Partner Name'))
+
+  // Counterparty: prefer the more specific source if present.
+  const counterparty = creatorName ?? partnerName
+  const affiliateType =
+    creatorName && partnerName ? 'creator+partner'
+    : creatorName               ? (txt(get('commission model')) ?? 'creator')
+    : partnerName               ? 'partner'
+    : null
+
+  // Counterparty external ID. Creator export uses "ID Konten" (content ID,
+  // best proxy we have); partner export uses "Affiliate Partner ID".
+  const counterpartyId = txt(get('Affiliate Partner ID')) ?? txt(get('ID Konten'))
+
+  // Commission rate / amount: try the creator columns first, then the partner
+  // columns, then the fallback partner-export "Tarif Komisi (%)" / "Est.
+  // Pembayaran Komisi" pair. Actual paid amounts beat estimates.
+  const commissionRate =
+       pct(get('Persentase komisi standar'))
+    ?? pct(get('Affiliate Partner Commission Rate'))
+    ?? pct(get('Tarif Komisi (%)'))
+  const commissionAmount =
+       num(get('Pembayaran Komisi Aktual'))
+    ?? num(get('Actual Commission for Affiliate Partner'))
+    ?? num(get('Perkiraan pembayaran komisi standar'))
+    ?? num(get('Est. Commission for Affiliate Partner'))
+    ?? num(get('Est. Pembayaran Komisi'))
+
   return {
     order_id:          txt(get('ID Pesanan')),
-    creator_username:  txt(get('Nama pengguna kreator')),
-    creator_id:        txt(get('ID Konten')),
-    affiliate_type:    txt(get('commission model')),
-    commission_rate:   pct(get('Persentase komisi standar')),
-    commission_amount: num(get('Pembayaran Komisi Aktual')) ?? num(get('Perkiraan pembayaran komisi standar')),
+    creator_username:  counterparty,
+    creator_id:        counterpartyId,
+    affiliate_type:    affiliateType,
+    commission_rate:   commissionRate,
+    commission_amount: commissionAmount,
     order_time:        parseDmyDateTime(get('Waktu Dibuat')),
     raw_data:          r,
   }

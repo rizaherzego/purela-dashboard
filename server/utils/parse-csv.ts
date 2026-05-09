@@ -70,7 +70,15 @@ function stripBom(s: string): string {
 }
 
 function parseOnce(text: string): ParsedFile {
-  const result = Papa.parse<Record<string, any>>(text, {
+  // Pre-flight: TikTok occasionally prepends an English explanation note as
+  // a single quoted line above the real header (seen in the affiliate-partner
+  // export: `"Note: When you collaborate directly with partners..."`). Probe
+  // the first ~10 rows without `header: true` to find the row with the most
+  // columns, then drop anything noticeably skinnier above it.
+  const skip = detectLeadingMetadataRows(text)
+  const body = skip > 0 ? dropLeadingLines(text, skip) : text
+
+  const result = Papa.parse<Record<string, any>>(body, {
     header: true,
     skipEmptyLines: 'greedy',
     delimiter: '', // empty string → Papa auto-detects (comma / tab / semicolon / pipe)
@@ -115,4 +123,41 @@ function parseOnce(text: string): ParsedFile {
   })
 
   return { headers: keepHeaders, rows, rowCount: rows.length }
+}
+
+// Probe the first chunk of the file (without `header: true`) and figure out
+// how many leading rows are metadata vs. the actual header row. A row is
+// considered metadata if its column count is < 1/3 of the maximum column
+// count seen in the first 10 rows AND the gap to the densest row is sharp.
+function detectLeadingMetadataRows(text: string): number {
+  const probeText = text.slice(0, Math.min(text.length, 8000))
+  const probe = Papa.parse<string[]>(probeText, {
+    header: false,
+    skipEmptyLines: 'greedy',
+    delimiter: '',
+  })
+  const rows = (probe.data ?? []).slice(0, 10)
+  if (rows.length < 2) return 0
+
+  const maxCols = Math.max(...rows.map(r => r.length))
+  if (maxCols < 4) return 0 // not a wide-enough file to bother
+
+  // Find the first row whose column count is "close to" the max.
+  // Anything before that is metadata.
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].length >= Math.max(4, maxCols / 3)) {
+      return i
+    }
+  }
+  return 0
+}
+
+function dropLeadingLines(text: string, n: number): string {
+  let cursor = 0
+  for (let i = 0; i < n; i++) {
+    const nl = text.indexOf('\n', cursor)
+    if (nl === -1) return ''
+    cursor = nl + 1
+  }
+  return text.slice(cursor)
 }
