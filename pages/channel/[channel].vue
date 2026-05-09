@@ -43,6 +43,37 @@ const { data: feeData } = useFetch<{
   cm_pct: number[]
 }>(() => `/api/metrics/channel-fee-composition?channel_id=${dbChannelId.value}&${queryString.value}`)
 
+const { data: factSummary } = await useFetch<{
+  total_rows: number; min_date: string | null; max_date: string | null
+}>('/api/metrics/fact-summary')
+
+function snapToAvailable() {
+  const s = factSummary.value
+  if (s?.min_date && s?.max_date) {
+    from.value = s.min_date
+    to.value   = s.max_date
+  }
+}
+
+const emptyState = computed(() => {
+  const hasTrend = (trendData.value?.weeks?.length ?? 0) > 0
+  const hasFee   = (feeData.value?.months?.length ?? 0) > 0
+  if (hasTrend || hasFee) return null
+  const fs = factSummary.value
+  if (!fs || fs.total_rows === 0) {
+    return {
+      kind: 'no-fact-data' as const,
+      title: 'No fact data yet',
+      message: 'Channel analytics come from settled orders. Upload a TikTok Shop settlement file to populate this page.',
+    }
+  }
+  return {
+    kind: 'empty-range' as const,
+    title: 'No data for this channel in this range',
+    message: `Fact data spans ${fs.min_date} → ${fs.max_date}, but nothing in the selected window for ${dbChannelId.value}.`,
+  }
+})
+
 // ── Chart theme ───────────────────────────────────────────────────────────
 const TIP = {
   backgroundColor: '#FFFEF8',
@@ -235,6 +266,35 @@ const compositionOption = computed(() => {
       @update:from="from = $event"
       @update:to="to = $event"
     />
+
+    <!-- Empty-state diagnostic -->
+    <div
+      v-if="emptyState"
+      class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
+    >
+      <Icon name="lucide:info" class="size-5 text-clay-600 shrink-0 mt-0.5" />
+      <div class="flex-1 min-w-0">
+        <div class="display text-sm text-clay-800 mb-1">{{ emptyState.title }}</div>
+        <p class="text-xs text-cream-700 leading-relaxed">{{ emptyState.message }}</p>
+        <div v-if="emptyState.kind === 'empty-range'" class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+            @click="snapToAvailable"
+          >
+            Snap range to available data
+          </button>
+        </div>
+        <div v-else class="mt-3 flex flex-wrap gap-2">
+          <NuxtLink
+            to="/upload"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+          >
+            Go to Upload
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Take-rate trend -->

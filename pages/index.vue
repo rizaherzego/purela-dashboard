@@ -18,6 +18,11 @@ interface OverviewResponse {
   current: Aggregate
   previous: Aggregate
   last_import: any | null
+  fact_summary: {
+    total_rows: number
+    min_date: string | null
+    max_date: string | null
+  }
 }
 
 const { data, pending, error } = await useFetch<OverviewResponse>(
@@ -32,6 +37,33 @@ function pctChange(curr: number, prev: number) {
     type: (delta > 0.001 ? 'up' : delta < -0.001 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
   }
 }
+
+function snapToAvailable() {
+  const s = data.value?.fact_summary
+  if (s?.min_date && s?.max_date) {
+    from.value = s.min_date
+    to.value   = s.max_date
+  }
+}
+
+const emptyState = computed(() => {
+  if (!data.value) return null
+  const fs = data.value.fact_summary
+  const lineCount = data.value.current.line_count
+  if (lineCount > 0) return null
+  if (fs.total_rows === 0) {
+    return {
+      kind: 'no-fact-data' as const,
+      title: 'No fact data yet',
+      message: 'Analytics are computed from settled orders. Upload a TikTok Shop settlement file (and optionally an orders export) to populate them — affiliate, ads, or returns files alone are stored but don\'t feed the fact table.',
+    }
+  }
+  return {
+    kind: 'empty-range' as const,
+    title: 'No data in this range',
+    message: `Available data: ${fs.min_date} → ${fs.max_date}.`,
+  }
+})
 
 const cards = computed(() => {
   if (!data.value) return []
@@ -291,6 +323,35 @@ const { data: recommendationsData } = useFetch<{
     <div v-else-if="!pending && !error" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
       <span>No imports yet. Visit <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">Upload</NuxtLink> to add data.</span>
+    </div>
+
+    <!-- Empty-state diagnostic -->
+    <div
+      v-if="emptyState"
+      class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
+    >
+      <Icon name="lucide:info" class="size-5 text-clay-600 shrink-0 mt-0.5" />
+      <div class="flex-1 min-w-0">
+        <div class="display text-sm text-clay-800 mb-1">{{ emptyState.title }}</div>
+        <p class="text-xs text-cream-700 leading-relaxed">{{ emptyState.message }}</p>
+        <div v-if="emptyState.kind === 'empty-range'" class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+            @click="snapToAvailable"
+          >
+            Snap range to available data
+          </button>
+        </div>
+        <div v-else class="mt-3 flex flex-wrap gap-2">
+          <NuxtLink
+            to="/upload"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+          >
+            Go to Upload
+          </NuxtLink>
+        </div>
+      </div>
     </div>
 
     <!-- KPI cards -->

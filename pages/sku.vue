@@ -19,6 +19,36 @@ const { data, pending, error } = await useFetch<{ rows: SkuRow[] }>(
   () => `/api/metrics/sku-margin?${queryString.value}`,
 )
 
+const { data: factSummary } = await useFetch<{
+  total_rows: number; min_date: string | null; max_date: string | null
+}>('/api/metrics/fact-summary')
+
+function snapToAvailable() {
+  const s = factSummary.value
+  if (s?.min_date && s?.max_date) {
+    from.value = s.min_date
+    to.value   = s.max_date
+  }
+}
+
+const emptyState = computed(() => {
+  if (pending.value || error.value) return null
+  if (data.value?.rows?.length) return null
+  const fs = factSummary.value
+  if (!fs || fs.total_rows === 0) {
+    return {
+      kind: 'no-fact-data' as const,
+      title: 'No fact data yet',
+      message: 'Per-SKU profitability comes from settled orders. Upload a TikTok Shop settlement file to populate this page.',
+    }
+  }
+  return {
+    kind: 'empty-range' as const,
+    title: 'No data in this range',
+    message: `Available data: ${fs.min_date} → ${fs.max_date}.`,
+  }
+})
+
 function cmTone(pct: number | null): string {
   if (pct == null) return 'text-cream-400'
   if (pct >= 0.25) return 'text-clay-600'
@@ -120,6 +150,35 @@ const skuChartOption = computed(() => {
       @update:from="from = $event"
       @update:to="to = $event"
     />
+
+    <!-- Empty-state diagnostic -->
+    <div
+      v-if="emptyState"
+      class="bg-clay-50 border border-clay-200 rounded-lg p-5 shadow-card flex items-start gap-3"
+    >
+      <Icon name="lucide:info" class="size-5 text-clay-600 shrink-0 mt-0.5" />
+      <div class="flex-1 min-w-0">
+        <div class="display text-sm text-clay-800 mb-1">{{ emptyState.title }}</div>
+        <p class="text-xs text-cream-700 leading-relaxed">{{ emptyState.message }}</p>
+        <div v-if="emptyState.kind === 'empty-range'" class="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+            @click="snapToAvailable"
+          >
+            Snap range to available data
+          </button>
+        </div>
+        <div v-else class="mt-3 flex flex-wrap gap-2">
+          <NuxtLink
+            to="/upload"
+            class="text-xs px-2.5 py-1 rounded-md border border-clay-500 bg-clay-500 text-white hover:bg-clay-600"
+          >
+            Go to Upload
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
 
     <!-- Top-10 bar chart -->
     <section v-if="!pending && top10.length" class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
