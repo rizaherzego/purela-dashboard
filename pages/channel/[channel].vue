@@ -20,6 +20,7 @@ useHead(() => ({ title: `${CHANNEL_LABEL[channelParam.value] ?? channelParam.val
 
 const dbChannelId = computed(() => CHANNEL_ID[channelParam.value] ?? channelParam.value)
 const { formatIDRCompact, formatPercent } = useFormat()
+const { from, to, queryString } = useDateRange()
 
 // ── Chart data ────────────────────────────────────────────────────────────
 const { data: trendData } = useFetch<{
@@ -27,7 +28,7 @@ const { data: trendData } = useFetch<{
   take_rate: (number | null)[]
   hist_labels: string[]
   hist_counts: number[]
-}>(() => `/api/metrics/channel-trend?channel_id=${dbChannelId.value}`)
+}>(() => `/api/metrics/channel-trend?channel_id=${dbChannelId.value}&${queryString.value}`)
 
 const { data: feeData } = useFetch<{
   months: string[]
@@ -40,7 +41,7 @@ const { data: feeData } = useFetch<{
   shipping: number[]
   refunds: number[]
   cm_pct: number[]
-}>(() => `/api/metrics/channel-fee-composition?channel_id=${dbChannelId.value}`)
+}>(() => `/api/metrics/channel-fee-composition?channel_id=${dbChannelId.value}&${queryString.value}`)
 
 // ── Chart theme ───────────────────────────────────────────────────────────
 const TIP = {
@@ -228,6 +229,13 @@ const compositionOption = computed(() => {
       <span class="text-xs font-mono text-cream-500">{{ dbChannelId }}</span>
     </div>
 
+    <DateRangeFilter
+      :from="from"
+      :to="to"
+      @update:from="from = $event"
+      @update:to="to = $event"
+    />
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Take-rate trend -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
@@ -239,14 +247,14 @@ const compositionOption = computed(() => {
       <!-- Distribution histogram -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
         <h3 class="display text-base mb-0.5">Take-rate distribution</h3>
-        <p class="text-xs text-cream-500 mb-4">Per-order histogram, last 26 weeks</p>
+        <p class="text-xs text-cream-500 mb-4">Per-order histogram within selected range</p>
         <AppChart :option="histOption" height="220px" />
       </section>
 
       <!-- Fee composition full-width -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card lg:col-span-2">
         <h3 class="display text-base mb-0.5">Fee composition over time</h3>
-        <p class="text-xs text-cream-500 mb-4">Stacked area — each layer is % of gross GMV per month</p>
+        <p class="text-xs text-cream-500 mb-4">Stacked area — each layer is % of gross GMV per month within range</p>
         <AppChart :option="compositionOption" height="260px" />
       </section>
     </div>

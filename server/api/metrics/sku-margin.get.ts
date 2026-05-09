@@ -1,17 +1,70 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { getDateRange } from '~~/server/utils/date-helpers'
 
+// Per-SKU per-channel profitability within the selected range.
+// Aggregates fact_orders (settled rows only) directly so the date filter applies.
 export default defineEventHandler(async (event) => {
   const sb = await serverSupabaseServiceRole(event)
+  const { from, to } = getDateRange(event)
   const channelId = getQuery(event).channel as string | undefined
 
-  let q = sb.from('v_audit_sku_margin')
-    .select('*')
-    .order('total_cm', { ascending: false, nullsFirst: false })
-    .limit(200)
+  let q = sb.from('fact_orders')
+    .select('channel_id, sku, product_name, quantity, gross_revenue, net_settlement, cogs, packaging_cost, ads_cost_attributed, contribution_margin')
+    .eq('is_fully_settled', true)
+    .gte('order_date', from)
+    .lte('order_date', to)
 
   if (channelId) q = q.eq('channel_id', channelId)
 
   const { data, error } = await q
   if (error) throw createError({ statusCode: 500, statusMessage: error.message })
-  return { rows: data ?? [] }
+
+  type Row = {
+    channel_id: string
+    sku: string | null
+    product_name: string | null
+    line_items: number
+    units_sold: number
+    gross_revenue: number
+    net_settlement: number
+    total_cogs: number
+    total_packaging: number
+    total_ads: number
+    total_cm: number
+    cm_pct: number | null
+  }
+
+  const acc = new Map<string, Row>()
+  for (const r of (data ?? []) as any[]) {
+    const key = `${r.channel_id}|${r.sku ?? ''}`
+    let row = acc.get(key)
+    if (!row) {
+      row = {
+        channel_id: r.channel_id,
+        sku: r.sku,
+        product_name: r.product_name,
+        line_items: 0, units_sold: 0,
+        gross_revenue: 0, net_settlement: 0,
+        total_cogs: 0, total_packaging: 0, total_ads: 0,
+        total_cm: 0, cm_pct: null,
+      }
+      acc.set(key, row)
+    }
+    row.line_items      += 1
+    row.units_sold      += Number(r.quantity) || 0
+    row.gross_revenue   += Number(r.gross_revenue) || 0
+    row.net_settlement  += Number(r.net_settlement) || 0
+    row.total_cogs      += Number(r.cogs) || 0
+    row.total_packaging += Number(r.packaging_cost) || 0
+    row.total_ads       += Number(r.ads_cost_attributed) || 0
+    row.total_cm        += Number(r.contribution_margin) || 0
+  }
+
+  const rows = [...acc.values()]
+  for (const r of rows) {
+    r.cm_pct = r.gross_revenue > 0 ? r.total_cm / r.gross_revenue : null
+  }
+  rows.sort((a, b) => (b.total_cm ?? 0) - (a.total_cm ?? 0))
+
+  return { rows: rows.slice(0, 200), range: { from, to } }
 })

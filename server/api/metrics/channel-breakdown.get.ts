@@ -1,25 +1,37 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { fmtMonth } from '~~/server/utils/date-helpers'
+import { fmtMonth, getDateRange } from '~~/server/utils/date-helpers'
 
-// Contribution margin per channel per month for the last 6 months (stacked bar).
+// Contribution margin per channel per month, within the selected date range (stacked bar).
 export default defineEventHandler(async (event) => {
   const sb = await serverSupabaseServiceRole(event)
-
-  const cutoff = new Date()
-  cutoff.setMonth(cutoff.getMonth() - 6)
-  const from = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-01`
+  const { from, to } = getDateRange(event)
 
   const { data, error } = await sb
-    .from('v_audit_fee_waterfall')
-    .select('channel_id, month, gross_gmv, net_settlement, contribution_margin')
-    .gte('month', from)
-    .order('month')
+    .from('fact_orders')
+    .select('channel_id, order_date, gross_revenue, net_settlement, contribution_margin')
+    .gte('order_date', from)
+    .lte('order_date', to)
 
   if (error) throw createError({ statusCode: 500, statusMessage: error.message })
 
-  const rows = (data ?? []) as { channel_id: string; month: string; gross_gmv: string; net_settlement: string; contribution_margin: string }[]
-  const months   = [...new Set(rows.map(r => r.month))].sort()
-  const channels = [...new Set(rows.map(r => r.channel_id))]
+  const rows = (data ?? []) as { channel_id: string; order_date: string; gross_revenue: string; net_settlement: string; contribution_margin: string }[]
+
+  // Bucket into "YYYY-MM-01" months on the fly.
+  type MonthRow = { gmv: number; cm: number }
+  const acc = new Map<string, Map<string, MonthRow>>() // channel → month → totals
+
+  for (const r of rows) {
+    const month = `${r.order_date.slice(0, 7)}-01`
+    let byMonth = acc.get(r.channel_id)
+    if (!byMonth) { byMonth = new Map(); acc.set(r.channel_id, byMonth) }
+    const cell = byMonth.get(month) ?? { gmv: 0, cm: 0 }
+    cell.gmv += Number(r.gross_revenue) || 0
+    cell.cm  += Number(r.contribution_margin) || 0
+    byMonth.set(month, cell)
+  }
+
+  const months = [...new Set(rows.map(r => `${r.order_date.slice(0, 7)}-01`))].sort()
+  const channels = [...acc.keys()]
 
   const LABELS: Record<string, string> = {
     tiktok_shop: 'TikTok Shop',
@@ -31,15 +43,9 @@ export default defineEventHandler(async (event) => {
   const series = channels.map(ch => ({
     channel_id: ch,
     label: LABELS[ch] ?? ch,
-    gmv: months.map(m => {
-      const r = rows.find(d => d.channel_id === ch && d.month === m)
-      return r ? Math.round(Number(r.gross_gmv)) : 0
-    }),
-    cm: months.map(m => {
-      const r = rows.find(d => d.channel_id === ch && d.month === m)
-      return r ? Math.round(Number(r.contribution_margin)) : 0
-    }),
+    gmv: months.map(m => Math.round(acc.get(ch)?.get(m)?.gmv ?? 0)),
+    cm:  months.map(m => Math.round(acc.get(ch)?.get(m)?.cm  ?? 0)),
   }))
 
-  return { months, monthLabels: months.map(fmtMonth), series }
+  return { months, monthLabels: months.map(fmtMonth), series, range: { from, to } }
 })

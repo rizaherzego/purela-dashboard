@@ -1,27 +1,23 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { getDateRange } from '~~/server/utils/date-helpers'
 
-// Profitability Overview metrics — last 30 days vs prior 30 days.
+// Profitability Overview metrics — selected range vs same-length prior range.
 // Reads from fact_orders directly so the math is consistent with the audit views.
 export default defineEventHandler(async (event) => {
   const sb = await serverSupabaseServiceRole(event)
+  const { from, to, prevFrom, prevTo } = getDateRange(event)
 
-  const today = new Date()
-  const day = (offset: number) => {
-    const d = new Date(today)
-    d.setUTCDate(d.getUTCDate() - offset)
-    return d.toISOString().slice(0, 10)
-  }
   const periods = {
-    current:  { from: day(30), to: day(0) },
-    previous: { from: day(60), to: day(31) },
+    current:  { from,     to },
+    previous: { from: prevFrom, to: prevTo },
   }
 
-  async function aggregate(from: string, to: string) {
+  async function aggregate(rangeFrom: string, rangeTo: string) {
     const { data, error } = await sb
       .from('fact_orders')
       .select('gross_revenue, net_settlement, contribution_margin, order_id, is_fully_settled')
-      .gte('order_date', from)
-      .lte('order_date', to)
+      .gte('order_date', rangeFrom)
+      .lte('order_date', rangeTo)
 
     if (error) throw createError({ statusCode: 500, statusMessage: error.message })
 

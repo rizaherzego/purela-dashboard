@@ -2,6 +2,7 @@
 definePageMeta({ title: 'Overview' })
 
 const { formatIDRCompact, formatPercent, formatNumber, formatDate } = useFormat()
+const { from, to, queryString } = useDateRange()
 
 // ── KPI cards (SSR-awaited) ────────────────────────────────────────────────
 interface Aggregate {
@@ -19,13 +20,15 @@ interface OverviewResponse {
   last_import: any | null
 }
 
-const { data, pending, error } = await useFetch<OverviewResponse>('/api/metrics/overview')
+const { data, pending, error } = await useFetch<OverviewResponse>(
+  () => `/api/metrics/overview?${queryString.value}`,
+)
 
 function pctChange(curr: number, prev: number) {
   if (!prev || prev === 0) return null
   const delta = (curr - prev) / Math.abs(prev)
   return {
-    text: `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}% vs prior 30d`,
+    text: `${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(1)}% vs prior period`,
     type: (delta > 0.001 ? 'up' : delta < -0.001 ? 'down' : 'neutral') as 'up' | 'down' | 'neutral',
   }
 }
@@ -45,20 +48,20 @@ const cards = computed(() => {
 // ── Chart data (non-awaited, loads progressively) ─────────────────────────
 const { data: trendData } = useFetch<{
   weeks: string[]; gmv: number[]; net: number[]; cm: number[]
-}>('/api/metrics/overview-trend')
+}>(() => `/api/metrics/overview-trend?${queryString.value}`)
 
 const { data: wfData } = useFetch<{
-  month: string | null
+  range: { from: string; to: string }
   gross_gmv: number; seller_funded_discounts: number; platform_commission: number
   affiliate_commission: number; service_fees: number; transaction_fees: number
   shipping_cost_seller: number; refund_amount: number; net_settlement: number
   cogs: number; packaging: number; ads_attributed: number; contribution_margin: number
-}>('/api/metrics/fee-waterfall')
+}>(() => `/api/metrics/fee-waterfall?${queryString.value}`)
 
 const { data: breakdownData } = useFetch<{
   months: string[]; monthLabels: string[]
   series: { channel_id: string; label: string; gmv: number[]; cm: number[] }[]
-}>('/api/metrics/channel-breakdown')
+}>(() => `/api/metrics/channel-breakdown?${queryString.value}`)
 
 // ── Shared chart theme helpers ────────────────────────────────────────────
 const TIP = {
@@ -121,7 +124,7 @@ const trendOption = computed(() => {
 // ── Chart: fee waterfall ──────────────────────────────────────────────────
 const waterfallOption = computed(() => {
   const d = wfData.value
-  if (!d?.month) return {}
+  if (!d || !d.gross_gmv) return {}
 
   const items = [
     { name: 'Gross GMV',      value: d.gross_gmv,                                                      type: 'total' },
@@ -263,11 +266,19 @@ const { data: recommendationsData } = useFetch<{
     value?: string | number
     actionUrl?: string
   }>
-}>('/api/metrics/recommendations')
+}>(() => `/api/metrics/recommendations?${queryString.value}`)
 </script>
 
 <template>
   <div class="space-y-8">
+    <!-- Date range filter -->
+    <DateRangeFilter
+      :from="from"
+      :to="to"
+      @update:from="from = $event"
+      @update:to="to = $event"
+    />
+
     <!-- Freshness badge -->
     <div v-if="data?.last_import" class="text-xs text-cream-500 flex items-center gap-2">
       <Icon name="lucide:database" class="size-3.5" />
@@ -298,7 +309,7 @@ const { data: recommendationsData } = useFetch<{
           <Icon name="lucide:lightbulb" class="size-4 text-clay-500" />
           <h2 class="display text-base">Insights & recommendations</h2>
         </div>
-        <p class="text-xs text-cream-500">Based on your last 30 days of data</p>
+        <p class="text-xs text-cream-500">Based on the selected date range</p>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         <RecommendationCard
@@ -313,16 +324,13 @@ const { data: recommendationsData } = useFetch<{
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
         <h2 class="display text-base mb-0.5">GMV vs Net Settlement vs Margin</h2>
-        <p class="text-xs text-cream-500 mb-4">Weekly buckets, last 6 months</p>
+        <p class="text-xs text-cream-500 mb-4">Weekly buckets within selected range</p>
         <AppChart :option="trendOption" height="220px" />
       </section>
 
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h2 class="display text-base mb-0.5">
-          Fee waterfall
-          <span v-if="wfData?.month" class="text-xs font-sans font-normal text-cream-500 ml-1">{{ wfData.month }}</span>
-        </h2>
-        <p class="text-xs text-cream-500 mb-4">Last fully-settled month, all channels</p>
+        <h2 class="display text-base mb-0.5">Fee waterfall</h2>
+        <p class="text-xs text-cream-500 mb-4">Summed across selected range, all channels</p>
         <AppChart :option="waterfallOption" height="220px" />
       </section>
     </div>
@@ -330,7 +338,7 @@ const { data: recommendationsData } = useFetch<{
     <!-- Channel breakdown full-width -->
     <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
       <h2 class="display text-base mb-0.5">Channel breakdown</h2>
-      <p class="text-xs text-cream-500 mb-4">Contribution margin per channel per month</p>
+      <p class="text-xs text-cream-500 mb-4">Contribution margin per channel per month within range</p>
       <AppChart :option="breakdownOption" height="200px" />
     </section>
   </div>

@@ -1,18 +1,16 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { isoWeekKey } from '~~/server/utils/date-helpers'
+import { getDateRange, isoWeekKey } from '~~/server/utils/date-helpers'
 
-// Weekly GMV / net settlement / contribution margin for the last 26 weeks.
+// Weekly GMV / net settlement / contribution margin for the selected range.
 export default defineEventHandler(async (event) => {
   const sb = await serverSupabaseServiceRole(event)
-
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - 26 * 7)
-  const from = cutoff.toISOString().slice(0, 10)
+  const { from, to } = getDateRange(event)
 
   const { data, error } = await sb
     .from('fact_orders')
     .select('order_date, gross_revenue, net_settlement, contribution_margin')
     .gte('order_date', from)
+    .lte('order_date', to)
     .order('order_date')
 
   if (error) throw createError({ statusCode: 500, statusMessage: error.message })
