@@ -65,5 +65,19 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .maybeSingle()
 
-  return { periods, current, previous, last_import: lastImport ?? null }
+  // Diagnostic: what's actually in fact_orders globally, so the page can tell
+  // the user "your range is empty but data exists from X to Y" vs "no fact rows
+  // at all — settlement file required".
+  const [factCountRes, factMinRes, factMaxRes] = await Promise.all([
+    sb.from('fact_orders').select('fact_order_id', { count: 'exact', head: true }),
+    sb.from('fact_orders').select('order_date').order('order_date', { ascending: true  }).limit(1).maybeSingle(),
+    sb.from('fact_orders').select('order_date').order('order_date', { ascending: false }).limit(1).maybeSingle(),
+  ])
+  const factSummary = {
+    total_rows: factCountRes.count ?? 0,
+    min_date:   factMinRes.data?.order_date ?? null,
+    max_date:   factMaxRes.data?.order_date ?? null,
+  }
+
+  return { periods, current, previous, last_import: lastImport ?? null, fact_summary: factSummary }
 })
