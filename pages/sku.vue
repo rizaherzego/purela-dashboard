@@ -186,7 +186,7 @@ const skuChartOption = computed(() => {
     </section>
 
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
-      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
+      <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!data?.rows?.length" class="p-12 text-center text-sm text-cream-500">
         {{ $t('skuPage.noRowsMsg') }}
