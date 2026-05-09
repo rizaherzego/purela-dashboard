@@ -1,3 +1,6 @@
+import { cp } from 'node:fs/promises'
+import { resolve } from 'node:path'
+
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
@@ -83,9 +86,21 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'netlify',
     // papaparse's UMD wrapper trips rollup's CJS parser; xlsx is huge.
-    // Keep both out of the rollup bundle and let Nitro require them at runtime.
+    // Both stay external to avoid the parse error and keep the bundle small,
+    // but Nitro's tracer doesn't add externals to the function bundle, so we
+    // copy them into node_modules ourselves via the `compiled` hook below —
+    // otherwise Netlify Functions throws ERR_MODULE_NOT_FOUND at runtime.
     rollupConfig: {
       external: ['papaparse', 'xlsx'],
+    },
+    hooks: {
+      async compiled(nitro) {
+        const dest = resolve(nitro.options.output.serverDir, 'node_modules')
+        await Promise.all([
+          cp(resolve('node_modules/papaparse'), resolve(dest, 'papaparse'), { recursive: true }),
+          cp(resolve('node_modules/xlsx'), resolve(dest, 'xlsx'), { recursive: true }),
+        ])
+      },
     },
   },
 
