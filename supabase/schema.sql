@@ -60,8 +60,8 @@ INSERT INTO channel_file_types (file_type_id, channel_id, display_name, raw_tabl
      '["Return Order ID", "Order ID", "SKU ID", "Seller SKU", "Return Reason", "Return Quantity", "Return Status"]',
      'After-sales → Export. Contains return reasons and refund amounts.'),
     ('tiktok_affiliate', 'tiktok_shop', 'Affiliate Orders (csv)',      'raw_tiktok_affiliate',
-     '["Order ID", "Creator Username", "Commission Rate", "Commission Amount"]',
-     'Affiliate → Performance → Export. Maps each affiliate-driven order to the creator.'),
+     '["ID Pesanan", "Nama pengguna kreator", "Persentase komisi standar", "Est. Acuan Komisi", "Waktu Dibuat"]',
+     'Affiliate → Performance → Export. Maps each affiliate-driven order to the creator. Headers are in Bahasa Indonesia for the ID locale; English-locale exports would need a separate file_type row.'),
     ('tiktok_ads',       'tiktok_shop', 'Ads Spend (csv)',             'raw_tiktok_ads',
      '["Campaign ID", "Campaign Name", "Date", "Spend", "Impressions", "Clicks"]',
      'TikTok Ads Manager → Campaigns → Export. NOT in Seller Center.');

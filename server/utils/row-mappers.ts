@@ -12,6 +12,21 @@ function num(v: any): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+// Parse a percentage value that may come in as "13%" or "0.13" or "13".
+// Returns the decimal fraction (0..1) so it fits NUMERIC(5,3). Heuristic:
+// if the string contains "%", divide by 100; else if the magnitude is > 1,
+// assume it's a percent expressed as a number and divide by 100; else use as-is.
+function pct(v: any): number | null {
+  if (v == null || v === '') return null
+  const s = String(v).trim()
+  if (!s) return null
+  const hasPercent = /%/.test(s)
+  const n = Number(s.replace(/[^\d.\-]/g, ''))
+  if (!Number.isFinite(n)) return null
+  if (hasPercent) return n / 100
+  return n > 1 ? n / 100 : n
+}
+
 function int(v: any): number | null {
   const n = num(v)
   return n == null ? null : Math.round(n)
@@ -203,6 +218,29 @@ export function mapTiktokReturn(r: Row) {
 }
 
 // ----------------------------------------------------------------------------
+// TikTok Shop — Affiliate Orders (csv)
+// Headers are in Bahasa Indonesia for the ID locale.
+//   "Pembayaran Komisi Aktual" = the actual commission paid out (may be empty
+//     for orders that haven't completed the payout cycle yet). Fall back to
+//     "Perkiraan pembayaran komisi standar" (estimated standard payout).
+//   "Persentase komisi standar" comes as "13%" — parse to decimal fraction.
+//   "Waktu Dibuat" = "DD/MM/YYYY HH:MM:SS" in UTC+7 (handled by parseDmyDateTime).
+// ----------------------------------------------------------------------------
+export function mapTiktokAffiliate(r: Row) {
+  const get = makeGetter(r)
+  return {
+    order_id:          txt(get('ID Pesanan')),
+    creator_username:  txt(get('Nama pengguna kreator')),
+    creator_id:        txt(get('ID Konten')),
+    affiliate_type:    txt(get('commission model')),
+    commission_rate:   pct(get('Persentase komisi standar')),
+    commission_amount: num(get('Pembayaran Komisi Aktual')) ?? num(get('Perkiraan pembayaran komisi standar')),
+    order_time:        parseDmyDateTime(get('Waktu Dibuat')),
+    raw_data:          r,
+  }
+}
+
+// ----------------------------------------------------------------------------
 // Generic dispatch by file_type_id
 // ----------------------------------------------------------------------------
 export function mapRowsForFileType(fileTypeId: string, rows: Row[]): Row[] {
@@ -210,7 +248,7 @@ export function mapRowsForFileType(fileTypeId: string, rows: Row[]): Row[] {
     case 'tiktok_income':    return rows.map(mapTiktokSettlement)
     case 'tiktok_orders':    return rows.map(mapTiktokOrder)
     case 'tiktok_returns':   return rows.map(mapTiktokReturn)
-    case 'tiktok_affiliate': return rows.map(r => ({ ...r, raw_data: r }))
+    case 'tiktok_affiliate': return rows.map(mapTiktokAffiliate)
     case 'tiktok_ads':       return rows.map(r => ({ ...r, raw_data: r }))
     default:                 return rows.map(r => ({ raw_data: r }))
   }
@@ -228,6 +266,9 @@ export function detectPeriod(fileTypeId: string, rows: Row[]): { start: string |
       if (d) dates.push(d.slice(0, 10))
     } else if (fileTypeId === 'tiktok_returns') {
       const d = (r as any).time_requested
+      if (d) dates.push(d.slice(0, 10))
+    } else if (fileTypeId === 'tiktok_affiliate') {
+      const d = (r as any).order_time
       if (d) dates.push(d.slice(0, 10))
     }
   }
