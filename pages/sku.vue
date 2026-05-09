@@ -182,13 +182,36 @@ const skuChartOption = computed(() => {
 
     <!-- Top-10 bar chart -->
     <section v-if="!pending && top10.length" class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h2 class="display text-base mb-0.5">Top 10 SKUs by contribution margin</h2>
+      <div class="flex items-center gap-1.5 mb-0.5">
+        <h2 class="display text-base">Top 10 SKUs by contribution margin</h2>
+        <InfoTooltip
+          title="Top 10 SKUs by contribution margin"
+          description="Your ten most profitable SKUs in the selected range, ranked by absolute contribution margin (the actual rupiah they put in your pocket).
+
+Bar length: Σ contribution_margin for that SKU.
+Color: CM% tier — teal ≥ 25% (strong), orange 10–25% (healthy), peach < 10% (at-risk).
+Right-side label: CM% = total_cm ÷ gross_revenue.
+
+Aggregated from settled orders only; bundles count as one SKU here (their components are exploded only in stock views)."
+        />
+      </div>
       <p class="text-xs text-cream-500 mb-4">Bars show absolute CM · label is CM%</p>
       <AppChart :option="skuChartOption" height="280px" />
     </section>
 
     <!-- Detailed table -->
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
+      <div class="px-5 py-3 border-b border-cream-200 flex items-center gap-1.5">
+        <h3 class="display text-sm">Per-SKU performance</h3>
+        <InfoTooltip
+          title="Per-SKU performance table"
+          description="Full per-SKU per-channel breakdown for the selected range. One row per (channel_id, sku) with everything aggregated from settled fact_orders.
+
+Columns: Units (Σ quantity) · Gross (Σ gross_revenue) · Net (Σ net_settlement) · COGS (Σ cogs from product_costs at order date) · CM (net − cogs − packaging − attributed ads) · CM% (CM ÷ gross).
+
+CM% color tiers: ≥ 25% strong, 10–25% healthy, < 10% at-risk. Sorted by CM descending; top 200 rows."
+        />
+      </div>
       <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!data?.rows?.length" class="p-12 text-center text-sm text-cream-500">

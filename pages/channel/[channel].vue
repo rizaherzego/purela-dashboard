@@ -299,21 +299,51 @@ const compositionOption = computed(() => {
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Take-rate trend -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-0.5">Effective take-rate trend</h3>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <h3 class="display text-base">Effective take-rate trend</h3>
+          <InfoTooltip
+            title="Effective take-rate trend"
+            description="Weekly take rate for this channel, settled orders only.
+
+Per week: (Σ gross_revenue − Σ net_settlement) ÷ Σ gross_revenue, expressed as %.
+
+The dashed line at 15% is a rough industry baseline for marketplace marketplaces — anything sustained above it means the channel is keeping more of your GMV than typical."
+          />
+        </div>
         <p class="text-xs text-cream-500 mb-4">Weekly — settled orders only · dashed = rough industry baseline</p>
         <AppChart :option="trendOption" height="220px" />
       </section>
 
       <!-- Distribution histogram -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h3 class="display text-base mb-0.5">Take-rate distribution</h3>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <h3 class="display text-base">Take-rate distribution</h3>
+          <InfoTooltip
+            title="Take-rate distribution"
+            description="Per-order take rate, bucketed in 2-percentage-point bins from 0% to 60%.
+
+For each settled line: (gross − net) ÷ gross. Bars show how many orders fall in each bucket.
+
+A wide spread or a long right tail means a few orders are getting hit much harder than average — usually high-discount or affiliate-heavy ones. A tight cluster means the platform's costs are predictable per order."
+          />
+        </div>
         <p class="text-xs text-cream-500 mb-4">Per-order histogram within selected range</p>
         <AppChart :option="histOption" height="220px" />
       </section>
 
       <!-- Fee composition full-width -->
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card lg:col-span-2">
-        <h3 class="display text-base mb-0.5">Fee composition over time</h3>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <h3 class="display text-base">Fee composition over time</h3>
+          <InfoTooltip
+            title="Fee composition over time"
+            description="Stacked area chart of where the channel's take rate goes, by month within range.
+
+Each layer is a deduction expressed as % of gross GMV: seller-funded discounts, platform commission, affiliate commission, service fees, transaction fees, shipping seller covers, refunds.
+
+The total stack height ≈ effective take rate; the shape of the stack tells you whether the take is getting eaten by ads (affiliate), ops (shipping/refunds), or platform fees."
+          />
+        </div>
         <p class="text-xs text-cream-500 mb-4">Stacked area — each layer is % of gross GMV per month within range</p>
         <AppChart :option="compositionOption" height="260px" />
       </section>
