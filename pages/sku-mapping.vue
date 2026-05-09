@@ -2,13 +2,15 @@
 definePageMeta({ title: 'SKU mapping' })
 
 interface Mapping {
+  id?: number
   channel_id: string
   external_sku: string
   external_product_id: string | null
   internal_sku: string | null
+  override_cogs?: number | null
 }
 
-const { data, pending, error } = await useFetch<{ mappings: Mapping[] }>('/api/reference/sku-mapping')
+const { data, pending, error, refresh } = await useFetch<{ mappings: Mapping[] }>('/api/reference/sku-mapping')
 
 const filterUnmapped = ref(false)
 const search = ref('')
@@ -25,6 +27,32 @@ const filtered = computed(() => {
   }
   return rows
 })
+
+const formOpen = ref(false)
+const editingMapping = ref<Mapping | null>(null)
+
+function openNewForm() {
+  editingMapping.value = null
+  formOpen.value = true
+}
+
+function openEditForm(mapping: Mapping) {
+  editingMapping.value = mapping
+  formOpen.value = true
+}
+
+function closeForm() {
+  formOpen.value = false
+  editingMapping.value = null
+}
+
+async function onSaved() {
+  await refresh()
+}
+
+async function onDeleted() {
+  await refresh()
+}
 </script>
 
 <template>
@@ -32,12 +60,24 @@ const filtered = computed(() => {
     <div class="flex items-center justify-between">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
         Each channel's "Seller SKU" mapped to our internal SKU. Unmapped rows
-        cause line items to land in fact_orders without a SKU until resolved.
+        cause line items to land in fact_orders without a SKU until resolved. Click any row to edit.
       </p>
-      <button class="px-3.5 py-2 text-sm border border-cream-200 rounded-md text-cream-400 cursor-not-allowed" disabled>
-        Edit mappings
+      <button
+        class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
+        @click="openNewForm"
+      >
+        + Add mapping
       </button>
     </div>
+
+    <SkuMappingForm
+      :is-open="formOpen"
+      :is-editing="editingMapping != null"
+      :initial-data="editingMapping ?? undefined"
+      @close="closeForm"
+      @saved="onSaved"
+      @deleted="onDeleted"
+    />
 
     <div class="flex items-center gap-4">
       <input
@@ -65,9 +105,12 @@ const filtered = computed(() => {
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">
-          <tr v-for="m in filtered" :key="m.channel_id + m.external_sku"
-              class="hover:bg-cream-50"
-              :class="{ 'bg-clay-50/30': !m.internal_sku }"
+          <tr
+            v-for="m in filtered"
+            :key="m.id ?? (m.channel_id + m.external_sku)"
+            class="hover:bg-cream-100 cursor-pointer transition"
+            :class="{ 'bg-clay-50/30': !m.internal_sku }"
+            @click="openEditForm(m)"
           >
             <td class="px-5 py-3 text-cream-500">{{ m.channel_id }}</td>
             <td class="px-5 py-3 font-mono text-xs text-cream-700">{{ m.external_sku }}</td>

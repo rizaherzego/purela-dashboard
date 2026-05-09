@@ -14,19 +14,57 @@ interface Product {
   current_packaging: number | null
 }
 
-const { data, pending, error } = await useFetch<{ products: Product[] }>('/api/reference/products')
+const { data, pending, error, refresh } = await useFetch<{ products: Product[] }>('/api/reference/products')
+
+const formOpen = ref(false)
+const editingProduct = ref<Product | null>(null)
+
+function openNewForm() {
+  editingProduct.value = null
+  formOpen.value = true
+}
+
+function openEditForm(product: Product) {
+  editingProduct.value = product
+  formOpen.value = true
+}
+
+function closeForm() {
+  formOpen.value = false
+  editingProduct.value = null
+}
+
+async function onSaved() {
+  await refresh()
+}
+
+async function onDeleted() {
+  await refresh()
+}
 </script>
 
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
-        Master product list and current COGS. Editing comes next turn — for now, manage rows via SQL or the bulk CSV importer.
+        Master product list and current COGS. Click any row to edit.
       </p>
-      <button class="px-3.5 py-2 text-sm border border-cream-200 rounded-md text-cream-400 cursor-not-allowed" disabled>
+      <button
+        class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
+        @click="openNewForm"
+      >
         + Add product
       </button>
     </div>
+
+    <ProductForm
+      :is-open="formOpen"
+      :is-editing="editingProduct != null"
+      :initial-data="editingProduct ?? undefined"
+      @close="closeForm"
+      @saved="onSaved"
+      @deleted="onDeleted"
+    />
 
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
       <div v-if="pending" class="p-12 text-center text-sm text-cream-400">Loading…</div>
@@ -48,7 +86,12 @@ const { data, pending, error } = await useFetch<{ products: Product[] }>('/api/r
           </tr>
         </thead>
         <tbody class="divide-y divide-cream-200">
-          <tr v-for="p in data.products" :key="p.sku" class="hover:bg-cream-50">
+          <tr
+            v-for="p in data.products"
+            :key="p.sku"
+            class="hover:bg-cream-100 cursor-pointer transition"
+            @click="openEditForm(p)"
+          >
             <td class="px-5 py-3 font-mono text-xs text-cream-700">{{ p.sku }}</td>
             <td class="px-5 py-3 text-cream-700">{{ p.product_name }}</td>
             <td class="px-5 py-3 text-cream-500">{{ p.category || '—' }}</td>
