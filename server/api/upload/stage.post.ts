@@ -7,6 +7,18 @@ import { stashStaged } from '~~/server/utils/stage-cache'
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50MB
 
+// Minimal column set the ETL truly cannot run without, per file type.
+// Anything else listed in channel_file_types.expected_headers is informational —
+// TikTok ships different column sets depending on which account features
+// (affiliate program, ads, GMV Max, etc.) are enabled.
+const REQUIRED_HEADERS: Record<string, string[]> = {
+  tiktok_income:    ['Order/adjustment ID', 'Order settled time', 'Total settlement amount'],
+  tiktok_orders:    ['Order ID', 'Seller SKU', 'Quantity', 'Created Time'],
+  tiktok_returns:   ['Return Order ID', 'Order ID'],
+  tiktok_affiliate: ['Order ID'],
+  tiktok_ads:       ['Date', 'Spend'],
+}
+
 export default defineEventHandler(async (event) => {
   const form = await readMultipartFormData(event)
   if (!form) {
@@ -77,7 +89,12 @@ export default defineEventHandler(async (event) => {
   const actualNormToOriginal = new Map(parsed.headers.map(h => [norm(h), h.trim()]))
   const expectedNormSet = new Set(expected.map(norm))
 
+  // `missing`: known columns that aren't in this file. Informational only —
+  // TikTok ships different column sets per account features.
   const missing = expected.filter(h => !actualNormToOriginal.has(norm(h)))
+  // `blocking_missing`: columns the ETL truly can't run without. Disables import.
+  const required = REQUIRED_HEADERS[fileTypeId] ?? []
+  const blockingMissing = required.filter(h => !actualNormToOriginal.has(norm(h)))
   const extra = [...actualNormToOriginal.entries()]
     .filter(([n]) => !expectedNormSet.has(n))
     .map(([, original]) => original)
@@ -105,6 +122,7 @@ export default defineEventHandler(async (event) => {
     period_start: period.start,
     period_end: period.end,
     missing_columns: missing,
+    blocking_missing: blockingMissing,
     extra_columns: extra,
     sample_rows: parsed.rows.slice(0, 5),
   }

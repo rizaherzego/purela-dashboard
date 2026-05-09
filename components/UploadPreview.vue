@@ -9,6 +9,7 @@ interface StagePayload {
   period_start?: string | null
   period_end?: string | null
   missing_columns?: string[]
+  blocking_missing?: string[]
   extra_columns?: string[]
   sample_rows?: Record<string, any>[]
 }
@@ -29,7 +30,12 @@ const sampleColumns = computed(() => {
   return first ? Object.keys(first).slice(0, 8) : []
 })
 
-const hasMissing = computed(() => (props.payload.missing_columns?.length ?? 0) > 0)
+// `missing_columns`: expected but absent — informational. TikTok ships different
+// column sets depending on which account features are enabled, so absence is
+// usually fine and the ETL will just leave those fields null.
+// `blocking_missing`: columns the ETL truly cannot run without — disables import.
+const hasOptionalMissing = computed(() => (props.payload.missing_columns?.length ?? 0) > 0)
+const hasBlocking = computed(() => (props.payload.blocking_missing?.length ?? 0) > 0)
 
 async function confirmImport() {
   importing.value = true
@@ -82,12 +88,25 @@ async function confirmImport() {
         </dl>
       </div>
 
-      <div v-if="hasMissing" class="p-4 bg-clay-50 border border-clay-100 rounded-md">
-        <p class="text-sm font-medium text-clay-900 mb-2">Missing required columns</p>
+      <!-- Truly required columns missing — blocks import -->
+      <div v-if="hasBlocking" class="p-4 bg-clay-50 border border-clay-200 rounded-md">
+        <p class="text-sm font-medium text-clay-900 mb-2">Required columns missing</p>
         <ul class="text-xs text-clay-800 space-y-1">
+          <li v-for="col in payload.blocking_missing" :key="col" class="font-mono">{{ col }}</li>
+        </ul>
+        <p class="mt-3 text-xs text-clay-700">The ETL can't run without these. Likely the wrong file type was selected — cancel and try again.</p>
+      </div>
+
+      <!-- Expected-but-absent columns — informational only -->
+      <div v-else-if="hasOptionalMissing" class="p-4 bg-cream-100 border border-cream-200 rounded-md">
+        <p class="text-sm font-medium text-cream-800 mb-2">Some expected columns aren't in this file</p>
+        <ul class="text-xs text-cream-700 space-y-1 max-h-32 overflow-y-auto">
           <li v-for="col in payload.missing_columns" :key="col" class="font-mono">{{ col }}</li>
         </ul>
-        <p class="mt-3 text-xs text-clay-700">This usually means the wrong file type was selected. Cancel and try again.</p>
+        <p class="mt-3 text-xs text-cream-600">
+          This is usually fine — TikTok omits feature-specific columns (affiliate, ads, GMV Max, etc.) when
+          those features aren't active on the account. Those fields will be left blank.
+        </p>
       </div>
 
       <div v-if="(payload.extra_columns?.length ?? 0) > 0" class="text-xs text-cream-500">
@@ -120,7 +139,7 @@ async function confirmImport() {
       <div class="flex items-center gap-3 pt-4 border-t border-cream-200">
         <button
           class="px-5 py-2.5 bg-clay-500 hover:bg-clay-600 disabled:bg-clay-300 text-white rounded-md text-sm font-medium transition-colors"
-          :disabled="importing || hasMissing"
+          :disabled="importing || hasBlocking"
           @click="confirmImport"
         >
           {{ importing ? 'Importing…' : 'Confirm import' }}
