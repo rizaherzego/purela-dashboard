@@ -1,5 +1,5 @@
 // Row mappers: take a raw record (keys = source headers, possibly with trailing
-// spaces) and return a record keyed by raw_* table columns.
+// spaces and inconsistent casing) and return a record keyed by raw_* table columns.
 //
 // Only the most-used columns are mapped here. Anything not mapped is
 // preserved in the row's `raw_data` JSONB field.
@@ -21,6 +21,18 @@ function txt(v: any): string | null {
   if (v == null) return null
   const s = String(v).trim()
   return s.length === 0 ? null : s
+}
+
+// Build a case-insensitive, whitespace-tolerant getter for a single row.
+// TikTok flips header casing and trailing-space conventions between months
+// (e.g. "Affiliate Commission" vs "Affiliate commission", "Type " vs "Type"),
+// so we normalize on lookup.
+const normKey = (k: string) => k.trim().toLowerCase().replace(/\s+/g, ' ')
+
+function makeGetter(r: Row) {
+  const lookup = new Map<string, any>()
+  for (const k of Object.keys(r)) lookup.set(normKey(k), r[k])
+  return (key: string) => lookup.get(normKey(key))
 }
 
 // Parse "yyyy/mm/dd" → ISO date string (used by TikTok income statement)
@@ -55,7 +67,7 @@ function parseDmyDateTime(v: any): string | null {
 // TikTok Shop — Income Statement (xlsx)
 // ----------------------------------------------------------------------------
 export function mapTiktokSettlement(r: Row) {
-  const get = (k: string) => r[k] ?? r[k + ' '] ?? r[k + '  '] ?? r[k.trim()]
+  const get = makeGetter(r)
   return {
     order_adjustment_id:             txt(get('Order/adjustment ID')),
     type:                            txt(get('Type')),
@@ -117,7 +129,7 @@ export function mapTiktokSettlement(r: Row) {
 // TikTok Shop — All Orders (csv)
 // ----------------------------------------------------------------------------
 export function mapTiktokOrder(r: Row) {
-  const get = (k: string) => r[k] ?? r[k + ' '] ?? r[k.trim()]
+  const get = makeGetter(r)
   return {
     order_id:                    txt(get('Order ID')),
     order_status:                txt(get('Order Status')),
@@ -168,7 +180,7 @@ export function mapTiktokOrder(r: Row) {
 // TikTok Shop — Returns (csv)
 // ----------------------------------------------------------------------------
 export function mapTiktokReturn(r: Row) {
-  const get = (k: string) => r[k] ?? r[k + ' '] ?? r[k.trim()]
+  const get = makeGetter(r)
   return {
     return_order_id:             txt(get('Return Order ID')),
     order_id:                    txt(get('Order ID')),

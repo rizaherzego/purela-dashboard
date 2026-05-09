@@ -68,12 +68,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'No rows detected in this file.' })
   }
 
-  // 4. Header diff
+  // 4. Header diff — normalized comparison (case-insensitive, whitespace-collapsed)
+  // because TikTok's exports flip casing and trailing-space conventions between months
+  // (e.g. "Affiliate Commission" vs "Affiliate commission", "Type " vs "Type").
+  const norm = (h: string) => h.trim().toLowerCase().replace(/\s+/g, ' ')
+
   const expected: string[] = (fileType.expected_headers as string[]) ?? []
-  const expectedTrimmed = new Set(expected.map(h => h.trim()))
-  const actualTrimmed = new Set(parsed.headers.map(h => h.trim()))
-  const missing = [...expectedTrimmed].filter(h => !actualTrimmed.has(h))
-  const extra = [...actualTrimmed].filter(h => !expectedTrimmed.has(h)).slice(0, 20)
+  const actualNormToOriginal = new Map(parsed.headers.map(h => [norm(h), h.trim()]))
+  const expectedNormSet = new Set(expected.map(norm))
+
+  const missing = expected.filter(h => !actualNormToOriginal.has(norm(h)))
+  const extra = [...actualNormToOriginal.entries()]
+    .filter(([n]) => !expectedNormSet.has(n))
+    .map(([, original]) => original)
+    .slice(0, 20)
 
   // 5. Map rows + detect period
   const mappedRows = mapRowsForFileType(fileTypeId, parsed.rows)
