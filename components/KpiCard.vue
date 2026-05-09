@@ -6,7 +6,11 @@ defineProps<{
   change?: string
   changeType?: 'up' | 'down' | 'neutral'
   icon?: string
+  /** Plain-text tooltip — kept for backwards compat, treated as the description body */
   tooltip?: string
+  /** Structured tooltip: heading + body, rendered via <InfoTooltip>. */
+  tooltipTitle?: string
+  tooltipDescription?: string
 }>()
 </script>
 
@@ -15,9 +19,11 @@ defineProps<{
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-1.5">
         <span class="text-xs uppercase tracking-wider text-cream-500 font-medium">{{ label }}</span>
-        <span v-if="tooltip" class="text-cream-400" :title="tooltip">
-          <Icon name="lucide:info" class="size-3" />
-        </span>
+        <InfoTooltip
+          v-if="tooltipDescription || tooltip"
+          :title="tooltipTitle ?? label"
+          :description="tooltipDescription ?? tooltip ?? ''"
+        />
       </div>
       <Icon v-if="icon" :name="icon" class="size-4 text-cream-400" />
     </div>

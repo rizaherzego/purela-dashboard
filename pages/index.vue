@@ -69,11 +69,48 @@ const cards = computed(() => {
   if (!data.value) return []
   const c = data.value.current, p = data.value.previous
   return [
-    { label: 'Gross GMV',        value: formatIDRCompact(c.gross_revenue),      change: pctChange(c.gross_revenue, p.gross_revenue)?.text,     changeType: pctChange(c.gross_revenue, p.gross_revenue)?.type,     icon: 'lucide:trending-up' },
-    { label: 'Net Settlement',   value: formatIDRCompact(c.net_settlement),      change: pctChange(c.net_settlement, p.net_settlement)?.text,   changeType: pctChange(c.net_settlement, p.net_settlement)?.type,   icon: 'lucide:wallet' },
-    { label: 'Effective take rate', value: formatPercent(c.effective_take_rate), tooltip: 'Share of GMV kept in fees, discounts & returns. (gross − net) ÷ gross.', icon: 'lucide:percent' },
-    { label: 'Contribution margin', value: formatIDRCompact(c.contribution_margin), hint: c.contribution_margin_pct != null ? `${formatPercent(c.contribution_margin_pct)} of GMV` : undefined, icon: 'lucide:bar-chart-2' },
-    { label: 'Orders',           value: formatNumber(c.order_count),             change: pctChange(c.order_count, p.order_count)?.text,         changeType: pctChange(c.order_count, p.order_count)?.type,         icon: 'lucide:shopping-cart' },
+    {
+      label: 'Gross GMV',
+      value: formatIDRCompact(c.gross_revenue),
+      change: pctChange(c.gross_revenue, p.gross_revenue)?.text,
+      changeType: pctChange(c.gross_revenue, p.gross_revenue)?.type,
+      icon: 'lucide:trending-up',
+      tooltipTitle: 'Gross GMV',
+      tooltipDescription: 'Sum of gross_revenue across every order line in the selected range — the headline pre-discount, pre-fee revenue you transacted on the platform.\n\nFormula: Σ fact_orders.gross_revenue WHERE order_date IN range.\n\nDelta compares against the same-length window immediately before this one.',
+    },
+    {
+      label: 'Net Settlement',
+      value: formatIDRCompact(c.net_settlement),
+      change: pctChange(c.net_settlement, p.net_settlement)?.text,
+      changeType: pctChange(c.net_settlement, p.net_settlement)?.type,
+      icon: 'lucide:wallet',
+      tooltipTitle: 'Net Settlement',
+      tooltipDescription: 'What actually hits your bank: gross revenue minus all platform deductions (commission, service & transaction fees, affiliate, shipping, refunds, vouchers).\n\nFormula: Σ fact_orders.net_settlement.',
+    },
+    {
+      label: 'Effective take rate',
+      value: formatPercent(c.effective_take_rate),
+      icon: 'lucide:percent',
+      tooltipTitle: 'Effective take rate',
+      tooltipDescription: 'Share of GMV the platform keeps once everything is netted out — fees, discounts, vouchers, shipping the seller covers, refunds.\n\nFormula: (Σ gross_revenue − Σ net_settlement) ÷ Σ gross_revenue, settled lines only.',
+    },
+    {
+      label: 'Contribution margin',
+      value: formatIDRCompact(c.contribution_margin),
+      hint: c.contribution_margin_pct != null ? `${formatPercent(c.contribution_margin_pct)} of GMV` : undefined,
+      icon: 'lucide:bar-chart-2',
+      tooltipTitle: 'Contribution margin',
+      tooltipDescription: 'What\'s left after variable costs: net settlement minus COGS, packaging, and attributed ads spend. Excludes fixed overhead.\n\nFormula: net_settlement − cogs − packaging_cost − ads_cost_attributed.',
+    },
+    {
+      label: 'Orders',
+      value: formatNumber(c.order_count),
+      change: pctChange(c.order_count, p.order_count)?.text,
+      changeType: pctChange(c.order_count, p.order_count)?.type,
+      icon: 'lucide:shopping-cart',
+      tooltipTitle: 'Orders',
+      tooltipDescription: 'Distinct order_id count in the range — multi-line orders count once.\n\nFormula: COUNT(DISTINCT fact_orders.order_id).',
+    },
   ]
 })
 
@@ -369,6 +406,10 @@ const { data: recommendationsData } = useFetch<{
         <div class="flex items-center gap-2 mb-1">
           <Icon name="lucide:lightbulb" class="size-4 text-clay-500" />
           <h2 class="display text-base">Insights & recommendations</h2>
+          <InfoTooltip
+            title="Insights & recommendations"
+            description="Rule-based hints fired off the data in the selected range. Triggers: shipping > 15% of GMV (warn) or > 20% (critical); seller discounts > 15% (warn) or > 25% (critical); per-channel take rate > 30% (warn) or > 40% (critical); SKUs with CM% < 10%; SKUs with abnormally high return rate. Each card links to the relevant drill-down page."
+          />
         </div>
         <p class="text-xs text-cream-500">Based on the selected date range</p>
       </div>
@@ -384,13 +425,35 @@ const { data: recommendationsData } = useFetch<{
     <!-- Trend + Waterfall side by side -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h2 class="display text-base mb-0.5">GMV vs Net Settlement vs Margin</h2>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <h2 class="display text-base">GMV vs Net Settlement vs Margin</h2>
+          <InfoTooltip
+            title="GMV vs Net Settlement vs Margin"
+            description="Three-line view of how much of your gross revenue you actually keep, week by week.
+
+• Gross GMV — sum of fact_orders.gross_revenue.
+• Net Settlement — what the platform pays out after fees & deductions.
+• Contribution Margin — net minus COGS, packaging, and attributed ads.
+
+Bucketed by ISO week (Monday-start). The widening gap between GMV and Net is your effective take rate; the gap between Net and Margin is your variable cost."
+          />
+        </div>
         <p class="text-xs text-cream-500 mb-4">Weekly buckets within selected range</p>
         <AppChart :option="trendOption" height="220px" />
       </section>
 
       <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-        <h2 class="display text-base mb-0.5">Fee waterfall</h2>
+        <div class="flex items-center gap-1.5 mb-0.5">
+          <h2 class="display text-base">Fee waterfall</h2>
+          <InfoTooltip
+            title="Fee waterfall"
+            description="Step-by-step decomposition of how Gross GMV becomes Contribution Margin within the selected range, summed across all channels.
+
+Reads: Gross GMV → minus discounts (seller_discount + voucher_seller_funded) → minus platform fees (commission + service + transaction) → minus affiliate commission → minus shipping seller covers → minus refunds = Net Settlement → minus COGS + packaging → minus attributed ads = Margin.
+
+Each bar height is the absolute deduction; the running total under it is the surviving amount."
+          />
+        </div>
         <p class="text-xs text-cream-500 mb-4">Summed across selected range, all channels</p>
         <AppChart :option="waterfallOption" height="220px" />
       </section>
@@ -398,7 +461,17 @@ const { data: recommendationsData } = useFetch<{
 
     <!-- Channel breakdown full-width -->
     <section class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
-      <h2 class="display text-base mb-0.5">Channel breakdown</h2>
+      <div class="flex items-center gap-1.5 mb-0.5">
+        <h2 class="display text-base">Channel breakdown</h2>
+        <InfoTooltip
+          title="Channel breakdown"
+          description="Stacked bars showing contribution margin per channel per month within range.
+
+Each segment = Σ contribution_margin for that (channel, month). Months are derived from order_date with month-precision, so a range that crosses months produces multiple bars.
+
+Useful for spotting which channel actually carries the bottom line vs. which just generates GMV."
+        />
+      </div>
       <p class="text-xs text-cream-500 mb-4">Contribution margin per channel per month within range</p>
       <AppChart :option="breakdownOption" height="200px" />
     </section>
