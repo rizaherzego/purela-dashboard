@@ -1,18 +1,15 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { isoWeekKey } from '~~/server/utils/date-helpers'
+import { getDateRange, isoWeekKey } from '~~/server/utils/date-helpers'
 
 // Per-channel weekly take-rate trend + take-rate distribution histogram.
-// Query param: channel_id (e.g. "tiktok_shop")
+// Query params: channel_id (e.g. "tiktok_shop"), from, to
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const channelId = String(query.channel_id || '')
   if (!channelId) throw createError({ statusCode: 400, statusMessage: 'channel_id is required.' })
 
   const sb = await serverSupabaseServiceRole(event)
-
-  const cutoff = new Date()
-  cutoff.setDate(cutoff.getDate() - 26 * 7)
-  const from = cutoff.toISOString().slice(0, 10)
+  const { from, to } = getDateRange(event)
 
   const { data, error } = await sb
     .from('fact_orders')
@@ -20,6 +17,7 @@ export default defineEventHandler(async (event) => {
     .eq('channel_id', channelId)
     .eq('is_fully_settled', true)
     .gte('order_date', from)
+    .lte('order_date', to)
     .order('order_date')
 
   if (error) throw createError({ statusCode: 500, statusMessage: error.message })

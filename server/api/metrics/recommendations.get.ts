@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { getDateRange } from '~~/server/utils/date-helpers'
 
 interface Recommendation {
   id: string
@@ -12,14 +13,11 @@ interface Recommendation {
 
 export default defineEventHandler(async (event) => {
   const sb = await serverSupabaseServiceRole(event)
+  const { from, to } = getDateRange(event)
   const recommendations: Recommendation[] = []
 
-  // Last 30 days date range
-  const now = new Date()
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-  const dateFrom = thirtyDaysAgo.toISOString().split('T')[0]
-
-  // 1. Low margin SKUs
+  // 1. Low margin SKUs — v_audit_sku_margin is all-time aggregate, so this
+  // ignores the date range. (Out of scope to refactor here; matches existing.)
   try {
     const { data: lowMarginSkus } = await sb
       .from('v_audit_sku_margin')
@@ -41,13 +39,14 @@ export default defineEventHandler(async (event) => {
         actionUrl: '/sku',
       })
     }
-  } catch (e) {
-    // Silently skip if query fails
-  }
+  } catch (e) { /* skip */ }
 
-  // 2. High return rate SKUs (requires fact_orders with return status)
+  // 2. High return rate SKUs (RPC scoped to a number-of-days window)
   try {
-    const { data: highReturnSkus } = await sb.rpc('get_high_return_skus', { days: 30 }).limit(3)
+    const fromD = new Date(from)
+    const toD = new Date(to)
+    const days = Math.max(1, Math.round((toD.getTime() - fromD.getTime()) / 86_400_000) + 1)
+    const { data: highReturnSkus } = await sb.rpc('get_high_return_skus', { days }).limit(3)
 
     if (highReturnSkus?.length) {
       recommendations.push({
@@ -59,83 +58,79 @@ export default defineEventHandler(async (event) => {
         actionUrl: '/sku',
       })
     }
-  } catch (e) {
-    // RPC might not exist yet — skip gracefully
-  }
+  } catch (e) { /* RPC may not exist */ }
 
-  // 3. High shipping cost impact (from fee waterfall)
+  // Pull aggregates straight from fact_orders within the range so the
+  // shipping/discount/take-rate burdens reflect the selected window.
   try {
-    const { data: feeData } = await sb
-      .from('v_audit_fee_waterfall')
-      .select('gross_gmv, shipping_cost_seller')
-      .gte('date', dateFrom)
-      .limit(1)
-      .single()
+    const { data: rows, error } = await sb
+      .from('fact_orders')
+      .select('channel_id, gross_revenue, seller_discount, voucher_seller_funded, shipping_cost_seller, net_settlement, is_fully_settled')
+      .gte('order_date', from)
+      .lte('order_date', to)
 
-    if (feeData && feeData.gross_gmv > 0) {
-      const shippingPct = feeData.shipping_cost_seller / feeData.gross_gmv
-      if (shippingPct > 0.15) {
+    if (!error && rows?.length) {
+      let gmv = 0, discounts = 0, shipping = 0
+      const byChannel = new Map<string, { gross: number; net: number }>()
+
+      for (const r of rows as any[]) {
+        const g = Number(r.gross_revenue) || 0
+        gmv       += g
+        discounts += (Number(r.seller_discount) || 0) + (Number(r.voucher_seller_funded) || 0)
+        shipping  += Number(r.shipping_cost_seller) || 0
+        if (r.is_fully_settled) {
+          const c = byChannel.get(r.channel_id) ?? { gross: 0, net: 0 }
+          c.gross += g
+          c.net   += Number(r.net_settlement) || 0
+          byChannel.set(r.channel_id, c)
+        }
+      }
+
+      // 3. High shipping cost burden
+      if (gmv > 0) {
+        const shippingPct = shipping / gmv
+        if (shippingPct > 0.15) {
+          recommendations.push({
+            id: 'high-shipping',
+            icon: 'lucide:truck',
+            title: 'High shipping cost burden',
+            severity: shippingPct > 0.2 ? 'critical' : 'warn',
+            message: `Shipping costs represent ${(shippingPct * 100).toFixed(1)}% of GMV. Negotiate rates or adjust pricing.`,
+          })
+        }
+
+        // 4. High discount burden
+        const discountPct = discounts / gmv
+        if (discountPct > 0.15) {
+          recommendations.push({
+            id: 'high-discounts',
+            icon: 'lucide:percent',
+            title: 'High discount intensity',
+            severity: discountPct > 0.25 ? 'critical' : 'warn',
+            message: `Seller discounts are ${(discountPct * 100).toFixed(1)}% of GMV. Consider reducing promotional intensity.`,
+          })
+        }
+      }
+
+      // 5. Worst effective take rate by channel
+      let worst: { channel: string; rate: number } | null = null
+      for (const [ch, c] of byChannel) {
+        if (c.gross <= 0) continue
+        const rate = (c.gross - c.net) / c.gross
+        if (!worst || rate > worst.rate) worst = { channel: ch, rate }
+      }
+      if (worst && worst.rate > 0.30) {
         recommendations.push({
-          id: 'high-shipping',
-          icon: 'lucide:truck',
-          title: 'High shipping cost burden',
-          severity: shippingPct > 0.2 ? 'critical' : 'warn',
-          message: `Shipping costs represent ${(shippingPct * 100).toFixed(1)}% of GMV. Negotiate rates or adjust pricing.`,
+          id: 'high-take-rate',
+          icon: 'lucide:zap',
+          title: `${worst.channel} high take rate`,
+          severity: worst.rate > 0.40 ? 'critical' : 'warn',
+          message: `${worst.channel} effective take rate is ${(worst.rate * 100).toFixed(1)}%. Negotiate better rates or consider shifting volume.`,
+          actionUrl: `/channel/${worst.channel === 'tiktok_shop' ? 'tiktok' : worst.channel}`,
         })
       }
     }
-  } catch (e) {
-    // Skip if query fails
-  }
+  } catch (e) { /* skip */ }
 
-  // 4. High discount burden
-  try {
-    const { data: discountData } = await sb
-      .from('v_audit_fee_waterfall')
-      .select('gross_gmv, seller_funded_discounts')
-      .gte('date', dateFrom)
-      .limit(1)
-      .single()
-
-    if (discountData && discountData.gross_gmv > 0) {
-      const discountPct = discountData.seller_funded_discounts / discountData.gross_gmv
-      if (discountPct > 0.15) {
-        recommendations.push({
-          id: 'high-discounts',
-          icon: 'lucide:percent',
-          title: 'High discount intensity',
-          severity: discountPct > 0.25 ? 'critical' : 'warn',
-          message: `Seller discounts are ${(discountPct * 100).toFixed(1)}% of GMV. Consider reducing promotional intensity.`,
-        })
-      }
-    }
-  } catch (e) {
-    // Skip
-  }
-
-  // 5. High effective take rate by channel
-  try {
-    const { data: channelTakeRates } = await sb
-      .from('v_audit_take_rate')
-      .select('channel_id, effective_take_rate_pct')
-      .gte('date', dateFrom)
-      .order('effective_take_rate_pct', { ascending: false })
-      .limit(1)
-
-    if (channelTakeRates?.length && channelTakeRates[0].effective_take_rate_pct > 30) {
-      const ch = channelTakeRates[0]
-      recommendations.push({
-        id: 'high-take-rate',
-        icon: 'lucide:zap',
-        title: `${ch.channel_id} high take rate`,
-        severity: ch.effective_take_rate_pct > 40 ? 'critical' : 'warn',
-        message: `${ch.channel_id} effective take rate is ${(ch.effective_take_rate_pct * 100).toFixed(1)}%. Negotiate better rates or consider shifting volume.`,
-        actionUrl: `/channel/${ch.channel_id === 'tiktok_shop' ? 'tiktok' : ch.channel_id}`,
-      })
-    }
-  } catch (e) {
-    // Skip
-  }
-
-  return { recommendations }
+  return { recommendations, range: { from, to } }
 })

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ title: 'SKU performance' })
 const { formatIDRCompact, formatPercent, formatNumber } = useFormat()
+const { from, to, queryString } = useDateRange()
 
 interface SkuRow {
   channel_id: string
@@ -14,7 +15,9 @@ interface SkuRow {
   cm_pct: number | null
 }
 
-const { data, pending, error } = await useFetch<{ rows: SkuRow[] }>('/api/metrics/sku-margin')
+const { data, pending, error } = await useFetch<{ rows: SkuRow[] }>(
+  () => `/api/metrics/sku-margin?${queryString.value}`,
+)
 
 function cmTone(pct: number | null): string {
   if (pct == null) return 'text-cream-400'
@@ -110,6 +113,13 @@ const skuChartOption = computed(() => {
       <span class="text-cream-700">Healthy (10–25%)</span> ·
       <span class="text-clay-800">At risk (&lt;10%)</span>.
     </p>
+
+    <DateRangeFilter
+      :from="from"
+      :to="to"
+      @update:from="from = $event"
+      @update:to="to = $event"
+    />
 
     <!-- Top-10 bar chart -->
     <section v-if="!pending && top10.length" class="bg-white border border-cream-200 rounded-lg p-6 shadow-card">
