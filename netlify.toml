@@ -5,11 +5,11 @@
 [build.environment]
   NODE_VERSION = "22"
 
-[[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/server"
-  status = 200
-  force = true
+# No [[redirects]] block — Nitro's netlify preset writes
+# `.netlify/functions-internal/server/server.mjs` with `path: "/*"` +
+# `preferStatic: true`, which registers the SSR handler with Netlify
+# Functions v2 and serves static assets from `dist/` first. A `force = true`
+# rewrite here would override `preferStatic` and break static asset serving.
 
 [[headers]]
   for = "/*"
