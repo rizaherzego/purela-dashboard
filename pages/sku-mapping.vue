@@ -98,11 +98,11 @@ async function onSuggesterSaved() {
       @saved="onSuggesterSaved"
     />
 
-    <div class="flex items-center gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
       <input
         v-model="search"
         :placeholder="$t('skuMappingPage.searchPlaceholder')"
-        class="px-3.5 py-2 bg-white border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition w-64"
+        class="px-3.5 py-2 bg-white border border-cream-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-clay-500 focus:border-clay-500 transition w-full sm:w-64"
       >
       <label class="inline-flex items-center gap-2 text-sm text-cream-600">
         <input v-model="filterUnmapped" type="checkbox" class="rounded text-clay-500 focus:ring-clay-500">
@@ -114,7 +114,8 @@ async function onSuggesterSaved() {
       <div v-if="pending" class="p-12 text-center text-sm text-cream-400">{{ $t('common.loading') }}</div>
       <div v-else-if="error" class="p-12 text-center text-sm text-clay-700">{{ error.message }}</div>
       <div v-else-if="!filtered.length" class="p-12 text-center text-sm text-cream-500">{{ $t('skuMappingPage.noMappings') }}</div>
-      <table v-else class="w-full text-sm">
+      <div v-else class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[640px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
             <th class="px-5 py-3 text-left font-medium">{{ $t('skuMappingPage.columns.channel') }}</th>
@@ -141,6 +142,7 @@ async function onSuggesterSaved() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </template>

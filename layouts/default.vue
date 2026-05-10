@@ -22,9 +22,9 @@ const todayLong = computed(() => {
 <template>
   <div class="min-h-screen bg-cream-50 text-cream-700">
     <AppTopNav />
-    <div class="px-8 py-8 max-w-screen-2xl mx-auto">
-      <header class="flex items-baseline justify-between mb-8 pb-4 border-b border-cream-200">
-        <h1 class="display text-2xl">{{ pageTitle }}</h1>
+    <div class="px-4 sm:px-8 py-6 sm:py-8 max-w-screen-2xl mx-auto">
+      <header class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-cream-200">
+        <h1 class="display text-xl sm:text-2xl">{{ pageTitle }}</h1>
         <div class="text-xs text-cream-500">{{ todayLong }}</div>
       </header>
       <slot />

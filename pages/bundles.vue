@@ -39,12 +39,12 @@ async function onDeleted() {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
         {{ $t('bundles.intro') }}
       </p>
       <button
-        class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
+        class="self-start sm:self-auto shrink-0 px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
         @click="openNewForm"
       >
         {{ $t('bundles.defineBundle') }}
