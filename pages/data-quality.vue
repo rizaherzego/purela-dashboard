@@ -100,7 +100,8 @@ const summary = computed(() => {
         <h3 class="display text-base">{{ $t('dataQuality.unmappedTitle') }}</h3>
         <NuxtLink to="/sku-mapping" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('dataQuality.unmappedResolveLink') }}</NuxtLink>
       </div>
-      <table class="w-full text-sm">
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[680px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60">
           <tr>
             <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.channel') }}</th>
@@ -120,6 +121,7 @@ const summary = computed(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section v-if="data?.missing_cogs?.length" class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
@@ -127,7 +129,8 @@ const summary = computed(() => {
         <h3 class="display text-base">{{ $t('dataQuality.missingCogsTitle') }}</h3>
         <NuxtLink to="/products" class="text-xs text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('dataQuality.missingCogsLink') }}</NuxtLink>
       </div>
-      <table class="w-full text-sm">
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[680px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60">
           <tr>
             <th class="px-5 py-2.5 text-left font-medium">{{ $t('dataQuality.columns.channel') }}</th>
@@ -147,6 +150,7 @@ const summary = computed(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section v-if="data?.errors?.length" class="text-xs text-clay-700 space-y-1">

@@ -191,7 +191,8 @@ const skuChartOption = computed(() => {
       <div v-else-if="!data?.rows?.length" class="p-12 text-center text-sm text-cream-500">
         {{ $t('skuPage.noRowsMsg') }}
       </div>
-      <table v-else class="w-full text-sm">
+      <div v-else class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[820px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
             <th class="px-5 py-3 text-left font-medium">{{ $t('skuPage.columns.channel') }}</th>
@@ -221,6 +222,7 @@ const skuChartOption = computed(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </template>

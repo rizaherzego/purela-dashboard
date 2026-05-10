@@ -39,11 +39,13 @@ async function remove(id: number) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-start justify-between gap-6">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
         {{ $t('imports.intro') }}
       </p>
-      <EtlRebuildButton :label="$t('imports.rerunAll')" />
+      <div class="self-start sm:self-auto shrink-0">
+        <EtlRebuildButton :label="$t('imports.rerunAll')" />
+      </div>
     </div>
 
     <div class="bg-white border border-cream-200 rounded-lg overflow-hidden shadow-card">
@@ -52,7 +54,8 @@ async function remove(id: number) {
       <div v-else-if="!data?.batches?.length" class="p-12 text-center text-sm text-cream-500">
         {{ $t('imports.noImports') }} <NuxtLink to="/upload" class="text-clay-600 hover:text-clay-700 underline underline-offset-2">{{ $t('imports.noImportsLink') }}</NuxtLink> {{ $t('imports.noImportsTrailing') }}
       </div>
-      <table v-else class="w-full text-sm">
+      <div v-else class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[820px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
             <th class="px-5 py-3 text-left font-medium">{{ $t('imports.columns.batch') }}</th>
@@ -86,6 +89,7 @@ async function remove(id: number) {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </template>
