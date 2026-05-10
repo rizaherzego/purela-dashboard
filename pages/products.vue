@@ -45,12 +45,12 @@ async function onDeleted() {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <p class="text-sm text-cream-600 max-w-2xl leading-relaxed">
         {{ $t('products.intro') }}
       </p>
       <button
-        class="px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
+        class="self-start sm:self-auto shrink-0 px-3.5 py-2 text-sm bg-clay-500 hover:bg-clay-600 text-white rounded-md font-medium transition"
         @click="openNewForm"
       >
         {{ $t('products.addProduct') }}
@@ -72,7 +72,8 @@ async function onDeleted() {
       <div v-else-if="!data?.products?.length" class="p-12 text-center text-sm text-cream-500">
         {{ $t('products.noneYet') }} <code class="font-mono bg-cream-100 px-1.5 py-0.5 rounded">products</code> {{ $t('products.viaSql') }}
       </div>
-      <table v-else class="w-full text-sm">
+      <div v-else class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[720px]">
         <thead class="text-xs uppercase tracking-wider text-cream-500 bg-cream-100/60 border-b border-cream-200">
           <tr>
             <th class="px-5 py-3 text-left font-medium">{{ $t('products.columns.sku') }}</th>
@@ -109,6 +110,7 @@ async function onDeleted() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </template>

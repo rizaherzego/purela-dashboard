@@ -113,7 +113,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
     <div class="w-px h-12 bg-cream-200 self-center hidden sm:block" />
 
-    <div ref="skuContainer" class="flex flex-col gap-1.5 flex-1 min-w-[240px]">
+    <div ref="skuContainer" class="flex flex-col gap-1.5 flex-1 min-w-0 sm:min-w-[240px] w-full">
       <div class="flex items-center gap-1.5 text-cream-500">
         <Icon name="lucide:package" class="size-3.5" />
         <span class="text-xs uppercase tracking-wider font-medium">{{ $t('flowPage.filtersProductSku') }}</span>
@@ -143,18 +143,18 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
           </button>
         </span>
 
-        <div class="relative">
+        <div class="relative w-full sm:w-auto">
           <input
             v-model="skuSearch"
             type="text"
             :placeholder="skus.length ? $t('flowPage.filtersAddMore') : $t('flowPage.filtersSearchPlaceholder')"
-            class="border border-cream-200 rounded-md px-2.5 py-1 text-xs text-cream-700 bg-white focus:outline-none focus:border-clay-500 w-48"
+            class="border border-cream-200 rounded-md px-2.5 py-1 text-xs text-cream-700 bg-white focus:outline-none focus:border-clay-500 w-full sm:w-48"
             @focus="skuDropdownOpen = true"
           />
 
           <div
             v-if="skuDropdownOpen && filteredProducts.length > 0"
-            class="absolute left-0 top-full mt-1 w-72 max-h-56 overflow-y-auto bg-white border border-cream-200 rounded-md shadow-pop z-20 py-1"
+            class="absolute left-0 top-full mt-1 w-full sm:w-72 max-h-56 overflow-y-auto bg-white border border-cream-200 rounded-md shadow-pop z-20 py-1"
           >
             <button
               v-for="product in filteredProducts"
@@ -179,7 +179,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
           <div
             v-if="skuDropdownOpen && filteredProducts.length === 0 && skuSearch"
-            class="absolute left-0 top-full mt-1 w-72 bg-white border border-cream-200 rounded-md shadow-pop z-20 py-3 px-3 text-xs text-cream-500 text-center"
+            class="absolute left-0 top-full mt-1 w-full sm:w-72 bg-white border border-cream-200 rounded-md shadow-pop z-20 py-3 px-3 text-xs text-cream-500 text-center"
           >
             {{ $t('flowPage.filtersNoMatch', { q: skuSearch }) }}
           </div>

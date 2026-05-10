@@ -197,7 +197,8 @@ function confidenceClass(conf: 'high' | 'medium' | 'low'): string {
               </div>
 
               <div class="bg-white border border-cream-200 rounded-lg overflow-hidden">
-                <table class="w-full text-xs">
+                <div class="overflow-x-auto">
+                <table class="w-full text-xs min-w-[720px]">
                   <thead class="bg-cream-100 text-cream-600 border-b border-cream-200">
                     <tr>
                       <th class="px-3 py-2.5 text-left font-medium uppercase tracking-wider">{{ $t('skuSuggester.columns.skip') }}</th>
@@ -242,6 +243,7 @@ function confidenceClass(conf: 'high' | 'medium' | 'low'): string {
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </template>
           </template>
